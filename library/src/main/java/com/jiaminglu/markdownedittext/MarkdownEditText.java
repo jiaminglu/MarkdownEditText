@@ -62,8 +62,17 @@ public class MarkdownEditText extends EditText {
                         String prevLinePrefix = s.subSequence(prevStart, prevStart + 4).toString();
                         if (prevLinePrefix.startsWith("[ ]") || prevLinePrefix.startsWith("[x]")) {
                             getText().insert(start + 1, "[ ] ");
-                            getText().setSpan(new ImageSpan(getContext(), checkboxRes, DynamicDrawableSpan.ALIGN_BASELINE), start + 1, start + 5, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            getText().setSpan(new ImageSpan(getContext(), checkboxRes, DynamicDrawableSpan.ALIGN_BASELINE), start + 1, start + 4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                         }
+                    }
+                }
+                if (before > 0 && start - 3 >= 0 && start <= s.length() && (start == 3 || s.charAt(start - 4) == '\n')) {
+                    String linePrefix = s.subSequence(start - 3, start).toString();
+                    if (linePrefix.startsWith("[ ]") || linePrefix.startsWith("[x]")) {
+                        for (ImageSpan span : getText().getSpans(start - 3, start, ImageSpan.class)) {
+                            getText().removeSpan(span);
+                        }
+                        getText().delete(start - 3, start);
                     }
                 }
             }
@@ -177,7 +186,7 @@ public class MarkdownEditText extends EditText {
                     }
                 }
                 getText().insert(lineStart, "[ ] ");
-                getText().setSpan(new ImageSpan(getContext(), checkboxRes, DynamicDrawableSpan.ALIGN_BASELINE), lineStart, lineStart + 4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                getText().setSpan(new ImageSpan(getContext(), checkboxRes, DynamicDrawableSpan.ALIGN_BASELINE), lineStart, lineStart + 3, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
         });
     }
@@ -193,7 +202,7 @@ public class MarkdownEditText extends EditText {
                     }
                 }
                 getText().insert(lineStart, "[x] ");
-                getText().setSpan(new ImageSpan(getContext(), checkboxCheckedRes, DynamicDrawableSpan.ALIGN_BASELINE), lineStart, lineStart + 4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                getText().setSpan(new ImageSpan(getContext(), checkboxCheckedRes, DynamicDrawableSpan.ALIGN_BASELINE), lineStart, lineStart + 3, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
         });
     }
