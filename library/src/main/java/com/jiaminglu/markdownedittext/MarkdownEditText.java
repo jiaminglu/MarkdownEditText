@@ -2,19 +2,13 @@ package com.jiaminglu.markdownedittext;
 
 import android.annotation.TargetApi;
 import android.content.Context;
-import android.graphics.Canvas;
 import android.graphics.Color;
-import android.graphics.Paint;
-import android.graphics.Rect;
-import android.graphics.drawable.Drawable;
 import android.graphics.drawable.ShapeDrawable;
 import android.graphics.drawable.shapes.OvalShape;
 import android.os.Build;
-import android.support.annotation.NonNull;
 import android.text.Editable;
 import android.text.Spannable;
 import android.text.Spanned;
-import android.text.TextPaint;
 import android.text.TextWatcher;
 import android.text.style.CharacterStyle;
 import android.text.style.DynamicDrawableSpan;
@@ -23,8 +17,6 @@ import android.text.style.StrikethroughSpan;
 import android.text.style.UnderlineSpan;
 import android.util.AttributeSet;
 import android.widget.EditText;
-
-import java.lang.ref.WeakReference;
 
 /**
  * Created by jiaminglu on 15/6/2.
@@ -80,6 +72,10 @@ public class MarkdownEditText extends EditText {
                             getText().insert(start + 1, "* ");
                             getText().setSpan(getBulletImageSpan(), start + 1, start + 3, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                         }
+                    }
+                    int numbering = getNumberingAtLine(prevStart);
+                    if (numbering != 0) {
+                        getText().insert(start + 1, String.valueOf(numbering + 1) + ". ");
                     }
                 }
             }
@@ -186,13 +182,20 @@ public class MarkdownEditText extends EditText {
             String linePrefix = getText().subSequence(lineStart, lineStart + 4).toString();
             if (linePrefix.equals("[ ] ") || linePrefix.equals("[x] ")) {
                 getText().delete(lineStart, lineStart + 4);
+                return;
             }
         }
         if (lineStart + 2 <= getText().length()) {
             String linePrefix = getText().subSequence(lineStart, lineStart + 2).toString();
             if (linePrefix.equals("* ")) {
                 getText().delete(lineStart, lineStart + 2);
+                return;
             }
+        }
+        int numbering = getNumberingAtLine(lineStart);
+        if (numbering != 0) {
+            String numStr = String.valueOf(numbering);
+            getText().delete(lineStart, lineStart + numStr.length() + 2);
         }
     }
 
@@ -222,6 +225,32 @@ public class MarkdownEditText extends EditText {
                 removeLinePrefixes(lineStart);
                 getText().insert(lineStart, "* ");
                 getText().setSpan(getBulletImageSpan(), lineStart, lineStart + 2, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+        });
+    }
+
+    private int getNumberingAtLine(int lineStart) {
+        int numEnd = lineStart;
+        while (numEnd >= 0 && numEnd < getText().length() && Character.isDigit(getText().charAt(numEnd))) {
+            numEnd ++;
+        }
+        if (numEnd >= 0 && numEnd < getText().length() && getText().charAt(numEnd) == '.') {
+            return Integer.parseInt(getText().subSequence(lineStart, numEnd).toString());
+        }
+        return 0;
+    }
+
+    public void setLineNumbered() {
+        operationOnLines(new LineOperation() {
+            @Override
+            public void operateOn(int lineStart) {
+                removeLinePrefixes(lineStart);
+                int prevLineStart = lineStart - 1;
+                while (prevLineStart > 0 && getText().charAt(prevLineStart - 1) != '\n')
+                    prevLineStart --;
+                int number = getNumberingAtLine(prevLineStart) + 1;
+                String numbering = String.valueOf(number) + ". ";
+                getText().insert(lineStart, numbering);
             }
         });
     }

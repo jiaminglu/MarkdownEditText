@@ -51,6 +51,9 @@ public class MainActivity extends ActionBarActivity {
             case R.id.list_bulleted:
                 editor.setLineBulleted();
                 break;
+            case R.id.list_numbers:
+                editor.setLineNumbered();
+                break;
         }
     }
 
