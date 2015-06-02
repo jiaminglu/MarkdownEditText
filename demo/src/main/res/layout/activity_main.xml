@@ -1,0 +1,56 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools" android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    android:paddingBottom="@dimen/activity_vertical_margin" tools:context=".MainActivity">
+
+    <com.jiaminglu.markdownedittext.MarkdownEditText
+        android:text="@string/hello_world"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:gravity="top"
+        android:background="@android:color/transparent"
+        android:id="@+id/editor"/>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+        <ImageButton
+            android:id="@+id/bold"
+            android:src="@drawable/ic_format_bold_black_24dp"
+            style="@style/FormatButton" />
+        <ImageButton
+            android:id="@+id/italic"
+            android:src="@drawable/ic_format_italic_black_24dp"
+            style="@style/FormatButton" />
+        <ImageButton
+            android:id="@+id/underline"
+            android:src="@drawable/ic_format_underline_black_24dp"
+            style="@style/FormatButton" />
+        <ImageButton
+            android:id="@+id/strikethrough"
+            android:src="@drawable/ic_format_strikethrough_black_24dp"
+            style="@style/FormatButton" />
+        <ImageButton
+            android:id="@+id/indent_in"
+            android:src="@drawable/ic_format_indent_increase_black_24dp"
+            style="@style/FormatButton" />
+        <ImageButton
+            android:id="@+id/indent_out"
+            android:src="@drawable/ic_format_indent_decrease_black_24dp"
+            style="@style/FormatButton" />
+        <ImageButton
+            android:id="@+id/checkbox"
+            android:src="@drawable/ic_checkbox_blank_outline_black_24dp"
+            style="@style/FormatButton" />
+        <ImageButton
+            android:id="@+id/checkbox_checked"
+            android:src="@drawable/ic_checkbox_marked_outline_black_24dp"
+            style="@style/FormatButton" />
+    </LinearLayout>
+
+</LinearLayout>
