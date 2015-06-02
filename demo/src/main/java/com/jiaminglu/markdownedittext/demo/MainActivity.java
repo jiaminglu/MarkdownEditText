@@ -18,6 +18,8 @@ public class MainActivity extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         editor = (MarkdownEditText) findViewById(R.id.editor);
+        editor.setCheckboxRes(R.drawable.ic_checkbox_blank_outline_black_18dp);
+        editor.setCheckboxCheckedRes(R.drawable.ic_checkbox_marked_black_18dp);
     }
 
     public void changeFormat(View v) {
@@ -39,6 +41,12 @@ public class MainActivity extends ActionBarActivity {
                 break;
             case R.id.indent_out:
                 editor.indentDecrease();
+                break;
+            case R.id.checkbox:
+                editor.setLineCheckbox();
+                break;
+            case R.id.checkbox_checked:
+                editor.setLineCheckboxChecked();
                 break;
         }
     }

@@ -2,12 +2,16 @@ package com.jiaminglu.markdownedittext;
 
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.graphics.drawable.Drawable;
 import android.os.Build;
 import android.text.Editable;
 import android.text.Spannable;
 import android.text.Spanned;
 import android.text.TextWatcher;
 import android.text.style.CharacterStyle;
+import android.text.style.DrawableMarginSpan;
+import android.text.style.DynamicDrawableSpan;
+import android.text.style.ImageSpan;
 import android.text.style.StrikethroughSpan;
 import android.text.style.UnderlineSpan;
 import android.util.AttributeSet;
@@ -42,30 +46,23 @@ public class MarkdownEditText extends EditText {
         addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
-                if (count > 0) {
-                    for (IndentSpan span : getText().getSpans(start, start + count + 1, IndentSpan.class)) {
-                        int spanStart = getText().getSpanStart(span);
-                        if (spanStart >= start && spanStart <= start + count)
-                            getText().removeSpan(span);
-                    }
-                }
             }
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
-                if (start + count < getText().length() && getText().charAt(start + count) == '\n') {
-                    for (IndentSpan span : getText().getSpans(start + count, start + count, IndentSpan.class)) {
-                        int oldStart = getText().getSpanStart(span);
-                        int oldEnd = getText().getSpanEnd(span);
-                        if (oldStart == start + count) {
-                            getText().removeSpan(span);
-                            while (start > 0 && getText().charAt(start - 1) != '\n')
-                                start --;
-                            getText().setSpan(span, start, oldEnd, Spanned.SPAN_EXCLUSIVE_INCLUSIVE);
-                        }
-                        if (oldEnd == start + count + 1 && oldStart < start) {
-                            getText().removeSpan(span);
-                            getText().setSpan(span, oldStart, start, Spanned.SPAN_EXCLUSIVE_INCLUSIVE);
+                if (start < s.length() && s.charAt(start) == '\n') {
+                    int prevStart = start - 1;
+                    while (prevStart > 0 && s.charAt(prevStart - 1) != '\n')
+                        prevStart--;
+                    while (s.charAt(prevStart) == '\t') {
+                        getText().insert(start + 1, "\t");
+                        prevStart ++;
+                    }
+                    if (prevStart + 4 < getText().length()) {
+                        String prevLinePrefix = s.subSequence(prevStart, prevStart + 4).toString();
+                        if (prevLinePrefix.startsWith("[ ]") || prevLinePrefix.startsWith("[x]")) {
+                            getText().insert(start + 1, "[ ] ");
+                            getText().setSpan(new ImageSpan(getContext(), checkboxRes, DynamicDrawableSpan.ALIGN_BASELINE), start + 1, start + 5, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                         }
                     }
                 }
@@ -120,54 +117,85 @@ public class MarkdownEditText extends EditText {
         toggleStyleSpan(new StrikethroughSpan());
     }
 
-    public void changeIndent(int level) {
+    interface LineOperation {
+        void operateOn(int lineStart);
+    }
+    public void operationOnLines(LineOperation lineOperation) {
         int start = getSelectionStart();
-        if (start > getText().length())
-            return;
-        if (start == getText().length()) {
-            int selection = getSelectionStart();
-            getText().insert(getText().length(), "\n");
-            setSelection(selection);
-        }
         while (start > 0 && getText().charAt(start - 1) != '\n') {
             start --;
         }
-        int end = start;
-        while (end <= getSelectionEnd()) {
-            while (end < getText().length() && (end == start || getText().charAt(end - 1) != '\n'))
-                end ++;
-            if (end > getText().length())
-                break;
-            IndentSpan[] spans = getText().getSpans(start, start + 1, IndentSpan.class);
-            int newLevel = level;
-            if (spans.length > 0) {
-                newLevel += spans[0].getLevel();
-                int oldSpanStart = getText().getSpanStart(spans[0]);
-                int oldSpanEnd = getText().getSpanEnd(spans[0]);
-                getText().removeSpan(spans[0]);
-                if (oldSpanEnd > end) {
-                    getText().setSpan(new IndentSpan(spans[0].getLevel(), (int) getTextSize()), end, oldSpanEnd, Spanned.SPAN_EXCLUSIVE_INCLUSIVE);
-                }
-                if (oldSpanStart < start) {
-                    getText().setSpan(new IndentSpan(spans[0].getLevel(), (int) getTextSize()), oldSpanStart, start, Spanned.SPAN_EXCLUSIVE_INCLUSIVE);
-                }
-            }
-            if (newLevel > 0) {
-                getText().setSpan(new IndentSpan(newLevel, (int) getTextSize()), start, end, Spanned.SPAN_EXCLUSIVE_INCLUSIVE);
-            }
-            start = end;
+        while (true) {
+            lineOperation.operateOn(start);
+            start ++;
+            while (start < getText().length() && (getText().charAt(start - 1) != '\n'))
+                start ++;
             if (start >= getSelectionEnd())
                 break;
         }
     }
 
     public void indentIncrease() {
-        changeIndent(1);
+        operationOnLines(new LineOperation() {
+            @Override
+            public void operateOn(int lineStart) {
+                getText().insert(lineStart, "\t");
+            }
+        });
     }
 
     public void indentDecrease() {
-        changeIndent(-1);
+        operationOnLines(new LineOperation() {
+            @Override
+            public void operateOn(int lineStart) {
+                if (lineStart < getText().length() && getText().charAt(lineStart) == '\t')
+                    getText().delete(lineStart, lineStart + 1);
+            }
+        });
     }
 
+    public void setCheckboxRes(int checkboxRes) {
+        this.checkboxRes = checkboxRes;
+    }
+
+    public void setCheckboxCheckedRes(int checkboxCheckedRes) {
+        this.checkboxCheckedRes = checkboxCheckedRes;
+    }
+
+    int checkboxRes;
+    int checkboxCheckedRes;
+
+
+    public void setLineCheckbox() {
+        operationOnLines(new LineOperation() {
+            @Override
+            public void operateOn(int lineStart) {
+                if (lineStart + 4 < getText().length()) {
+                    String linePrefix = getText().subSequence(lineStart, lineStart + 4).toString();
+                    if (linePrefix.equals("[ ] ") || linePrefix.equals("[x] ")) {
+                        getText().delete(lineStart, lineStart + 4);
+                    }
+                }
+                getText().insert(lineStart, "[ ] ");
+                getText().setSpan(new ImageSpan(getContext(), checkboxRes, DynamicDrawableSpan.ALIGN_BASELINE), lineStart, lineStart + 4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+        });
+    }
+
+    public void setLineCheckboxChecked() {
+        operationOnLines(new LineOperation() {
+            @Override
+            public void operateOn(int lineStart) {
+                if (lineStart + 4 < getText().length()) {
+                    String linePrefix = getText().subSequence(lineStart, lineStart + 4).toString();
+                    if (linePrefix.equals("[ ] ") || linePrefix.equals("[x] ")) {
+                        getText().delete(lineStart, lineStart + 4);
+                    }
+                }
+                getText().insert(lineStart, "[x] ");
+                getText().setSpan(new ImageSpan(getContext(), checkboxCheckedRes, DynamicDrawableSpan.ALIGN_BASELINE), lineStart, lineStart + 4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+        });
+    }
 
 }
