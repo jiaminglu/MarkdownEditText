@@ -56,27 +56,34 @@ public class MarkdownEditText extends EditText {
                     while (prevStart > 0 && s.charAt(prevStart - 1) != '\n')
                         prevStart--;
                     while (s.charAt(prevStart) == '\t') {
-                        getText().insert(++ start, "\t");
-                        prevStart ++;
+                        getText().insert(++start, "\t");
+                        prevStart++;
                     }
                     if (prevStart + 3 <= getText().length()) {
                         String prevLinePrefix = s.subSequence(prevStart, prevStart + 3).toString();
                         if (prevLinePrefix.startsWith("[ ]") || prevLinePrefix.startsWith("[x]")) {
                             getText().insert(start + 1, "[ ] ");
-                            getText().setSpan(getCheckboxImageSpan(), start + 1, start + 5, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            getText().setSpan(getCheckboxImageSpan(), start + 1, start + 4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                         }
                     }
                     if (prevStart + 1 <= getText().length()) {
                         String prevLinePrefix = s.subSequence(prevStart, prevStart + 1).toString();
                         if (prevLinePrefix.startsWith("*")) {
                             getText().insert(start + 1, "* ");
-                            getText().setSpan(getBulletImageSpan(), start + 1, start + 3, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            getText().setSpan(getBulletImageSpan(), start + 1, start + 2, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                         }
                     }
                     int numbering = getNumberingAtLine(prevStart);
                     if (numbering != 0) {
                         getText().insert(start + 1, String.valueOf(numbering + 1) + ". ");
                     }
+                }
+                if (before > 0 && thisLineStartsWith(start, "[ ]")) {
+                    clearLinePrefix(start - 3, start);
+                } else if (before > 0 && thisLineStartsWith(start, "[x]")) {
+                    clearLinePrefix(start - 3, start);
+                } else if (before > 0 && thisLineStartsWith(start, "*")) {
+                    clearLinePrefix(start - 1, start);
                 }
             }
 
@@ -85,6 +92,18 @@ public class MarkdownEditText extends EditText {
 
             }
         });
+    }
+
+    private boolean thisLineStartsWith(int position, String string) {
+        int start = position - string.length();
+        return ((start > 0 && getText().charAt(start - 1) == '\n') || start == 0) && getText().subSequence(start, position).toString().equals(string);
+    }
+
+    private void clearLinePrefix(int st, int en) {
+        for (ImageSpan span : getText().getSpans(st, en, ImageSpan.class)) {
+            getText().removeSpan(span);
+        }
+        getText().delete(st, en);
     }
 
     public void toggleStyleSpan(CharacterStyle newSpan) {
@@ -203,21 +222,23 @@ public class MarkdownEditText extends EditText {
 
     ShapeDrawable bullet;
     {
-        bullet = new ShapeDrawable(new OvalShape());
-        bullet.getShape().resize(8, 8);
+        bullet = new ShapeDrawable(new DotShape(4));
         bullet.getPaint().setColor(Color.BLACK);
     }
 
     private ImageSpan getBulletImageSpan() {
-        return new CenteredImageSpan(bullet, DynamicDrawableSpan.ALIGN_BASELINE).setSpacing((int )getTextSize() / 2);
+        ((DotShape)bullet.getShape()).setRadius(getTextSize() / 8);
+        bullet.getShape().resize(getTextSize() / 2, getTextSize() / 4);
+        bullet.setBounds(0,0, (int) (getTextSize() / 2), (int) (getTextSize() / 4));
+        return new CenteredImageSpan(bullet, DynamicDrawableSpan.ALIGN_BASELINE).setSpacing((int)getTextSize() / 4);
     }
 
     private ImageSpan getCheckboxImageSpan() {
-        return new CenteredImageSpan(getContext(), checkboxRes, DynamicDrawableSpan.ALIGN_BASELINE).setSpacing((int )getTextSize() / 2);
+        return new CenteredImageSpan(getContext(), checkboxRes, DynamicDrawableSpan.ALIGN_BASELINE).setSpacing((int)getTextSize() / 4);
     }
 
     private ImageSpan getCheckboxCheckedImageSpan() {
-        return new CenteredImageSpan(getContext(), checkboxCheckedRes, DynamicDrawableSpan.ALIGN_BASELINE).setSpacing((int )getTextSize() / 2);
+        return new CenteredImageSpan(getContext(), checkboxCheckedRes, DynamicDrawableSpan.ALIGN_BASELINE).setSpacing((int)getTextSize() / 4);
     }
 
     public void setLineBulleted() {
@@ -226,7 +247,7 @@ public class MarkdownEditText extends EditText {
             public void operateOn(int lineStart) {
                 removeLinePrefixes(lineStart);
                 getText().insert(lineStart, "* ");
-                getText().setSpan(getBulletImageSpan(), lineStart, lineStart + 2, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                getText().setSpan(getBulletImageSpan(), lineStart, lineStart + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
         });
     }
@@ -263,7 +284,7 @@ public class MarkdownEditText extends EditText {
             public void operateOn(int lineStart) {
                 removeLinePrefixes(lineStart);
                 getText().insert(lineStart, "[ ] ");
-                getText().setSpan(getCheckboxImageSpan(), lineStart, lineStart + 4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                getText().setSpan(getCheckboxImageSpan(), lineStart, lineStart + 3, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
         });
     }
@@ -274,7 +295,7 @@ public class MarkdownEditText extends EditText {
             public void operateOn(int lineStart) {
                 removeLinePrefixes(lineStart);
                 getText().insert(lineStart, "[x] ");
-                getText().setSpan(getCheckboxCheckedImageSpan(), lineStart, lineStart + 4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                getText().setSpan(getCheckboxCheckedImageSpan(), lineStart, lineStart + 3, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
         });
     }

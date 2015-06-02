@@ -55,8 +55,8 @@ public class CenteredImageSpan extends ImageSpan {
         canvas.save();
 
         int bCenter = b.getIntrinsicHeight() / 2;
-        int fontTop = paint.getFontMetricsInt().top;
-        int fontBottom = paint.getFontMetricsInt().bottom;
+        int fontTop = paint.getFontMetricsInt().ascent;
+        int fontBottom = paint.getFontMetricsInt().descent;
         int transY = (bottom - b.getBounds().bottom) -
                 (((fontBottom - fontTop) / 2) - bCenter);
 
