@@ -34,6 +34,20 @@ public class CenteredImageSpan extends ImageSpan {
     }
 
     @Override
+    public int getSize(Paint paint, CharSequence text,
+                       int start, int end,
+                       Paint.FontMetricsInt fm) {
+        return super.getSize(paint, text, start, end, fm) + spacing;
+    }
+
+    int spacing;
+
+    public CenteredImageSpan setSpacing(int spacing) {
+        this.spacing = spacing;
+        return this;
+    }
+
+    @Override
     public void draw(Canvas canvas, CharSequence text,
                      int start, int end, float x,
                      int top, int y, int bottom, Paint paint) {
