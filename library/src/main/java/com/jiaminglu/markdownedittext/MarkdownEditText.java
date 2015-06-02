@@ -56,7 +56,7 @@ public class MarkdownEditText extends EditText {
                     while (prevStart > 0 && s.charAt(prevStart - 1) != '\n')
                         prevStart--;
                     while (s.charAt(prevStart) == '\t') {
-                        getText().insert(start + 1, "\t");
+                        getText().insert(++ start, "\t");
                         prevStart ++;
                     }
                     if (prevStart + 3 <= getText().length()) {
@@ -138,6 +138,8 @@ public class MarkdownEditText extends EditText {
             start --;
         }
         while (true) {
+            while (start < getText().length() && getText().charAt(start) == '\t')
+                start ++;
             lineOperation.operateOn(start);
             start ++;
             while (start < getText().length() && (getText().charAt(start - 1) != '\n'))
@@ -160,8 +162,8 @@ public class MarkdownEditText extends EditText {
         operationOnLines(new LineOperation() {
             @Override
             public void operateOn(int lineStart) {
-                if (lineStart < getText().length() && getText().charAt(lineStart) == '\t')
-                    getText().delete(lineStart, lineStart + 1);
+                if (lineStart > 0 && getText().charAt(lineStart - 1) == '\t')
+                    getText().delete(lineStart - 1, lineStart);
             }
         });
     }
