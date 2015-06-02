@@ -2,20 +2,29 @@ package com.jiaminglu.markdownedittext;
 
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
+import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
+import android.graphics.drawable.ShapeDrawable;
+import android.graphics.drawable.shapes.OvalShape;
 import android.os.Build;
+import android.support.annotation.NonNull;
 import android.text.Editable;
 import android.text.Spannable;
 import android.text.Spanned;
+import android.text.TextPaint;
 import android.text.TextWatcher;
 import android.text.style.CharacterStyle;
-import android.text.style.DrawableMarginSpan;
 import android.text.style.DynamicDrawableSpan;
 import android.text.style.ImageSpan;
 import android.text.style.StrikethroughSpan;
 import android.text.style.UnderlineSpan;
 import android.util.AttributeSet;
 import android.widget.EditText;
+
+import java.lang.ref.WeakReference;
 
 /**
  * Created by jiaminglu on 15/6/2.
@@ -58,11 +67,18 @@ public class MarkdownEditText extends EditText {
                         getText().insert(start + 1, "\t");
                         prevStart ++;
                     }
-                    if (prevStart + 4 < getText().length()) {
-                        String prevLinePrefix = s.subSequence(prevStart, prevStart + 4).toString();
+                    if (prevStart + 3 <= getText().length()) {
+                        String prevLinePrefix = s.subSequence(prevStart, prevStart + 3).toString();
                         if (prevLinePrefix.startsWith("[ ]") || prevLinePrefix.startsWith("[x]")) {
                             getText().insert(start + 1, "[ ] ");
-                            getText().setSpan(new ImageSpan(getContext(), checkboxRes, DynamicDrawableSpan.ALIGN_BASELINE), start + 1, start + 4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            getText().setSpan(getCheckboxImageSpan(), start + 1, start + 4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        }
+                    }
+                    if (prevStart + 1 <= getText().length()) {
+                        String prevLinePrefix = s.subSequence(prevStart, prevStart + 1).toString();
+                        if (prevLinePrefix.startsWith("*")) {
+                            getText().insert(start + 1, "* ");
+                            getText().setSpan(getBulletImageSpan(), start + 1, start + 2, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                         }
                     }
                 }
@@ -73,6 +89,14 @@ public class MarkdownEditText extends EditText {
                             getText().removeSpan(span);
                         }
                         getText().delete(start - 3, start);
+                    }
+                }
+                if (before > 0 && start - 1 >= 0 && start <= s.length() && (start == 1 || s.charAt(start - 2) == '\n')) {
+                    if (s.charAt(start - 1) == '*') {
+                        for (ImageSpan span : getText().getSpans(start - 1, start, ImageSpan.class)) {
+                            getText().removeSpan(span);
+                        }
+                        getText().delete(start - 1, start);
                     }
                 }
             }
@@ -174,19 +198,58 @@ public class MarkdownEditText extends EditText {
     int checkboxRes;
     int checkboxCheckedRes;
 
+    private void removeLinePrefixes(int lineStart) {
+        if (lineStart + 4 <= getText().length()) {
+            String linePrefix = getText().subSequence(lineStart, lineStart + 4).toString();
+            if (linePrefix.equals("[ ] ") || linePrefix.equals("[x] ")) {
+                getText().delete(lineStart, lineStart + 4);
+            }
+        }
+        if (lineStart + 2 <= getText().length()) {
+            String linePrefix = getText().subSequence(lineStart, lineStart + 2).toString();
+            if (linePrefix.equals("* ")) {
+                getText().delete(lineStart, lineStart + 2);
+            }
+        }
+    }
+
+    ShapeDrawable bullet;
+    {
+        bullet = new ShapeDrawable(new OvalShape());
+        bullet.getShape().resize(8, 8);
+        bullet.getPaint().setColor(Color.BLACK);
+    }
+
+    private ImageSpan getBulletImageSpan() {
+        return new CenteredImageSpan(bullet, DynamicDrawableSpan.ALIGN_BASELINE);
+    }
+
+    private ImageSpan getCheckboxImageSpan() {
+        return new CenteredImageSpan(getContext(), checkboxRes, DynamicDrawableSpan.ALIGN_BASELINE);
+    }
+
+    private ImageSpan getCheckboxCheckedImageSpan() {
+        return new CenteredImageSpan(getContext(), checkboxCheckedRes, DynamicDrawableSpan.ALIGN_BASELINE);
+    }
+
+    public void setLineBulleted() {
+        operationOnLines(new LineOperation() {
+            @Override
+            public void operateOn(int lineStart) {
+                removeLinePrefixes(lineStart);
+                getText().insert(lineStart, "* ");
+                getText().setSpan(getBulletImageSpan(), lineStart, lineStart + 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+            }
+        });
+    }
 
     public void setLineCheckbox() {
         operationOnLines(new LineOperation() {
             @Override
             public void operateOn(int lineStart) {
-                if (lineStart + 4 < getText().length()) {
-                    String linePrefix = getText().subSequence(lineStart, lineStart + 4).toString();
-                    if (linePrefix.equals("[ ] ") || linePrefix.equals("[x] ")) {
-                        getText().delete(lineStart, lineStart + 4);
-                    }
-                }
+                removeLinePrefixes(lineStart);
                 getText().insert(lineStart, "[ ] ");
-                getText().setSpan(new ImageSpan(getContext(), checkboxRes, DynamicDrawableSpan.ALIGN_BASELINE), lineStart, lineStart + 3, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                getText().setSpan(getCheckboxImageSpan(), lineStart, lineStart + 3, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
         });
     }
@@ -195,14 +258,9 @@ public class MarkdownEditText extends EditText {
         operationOnLines(new LineOperation() {
             @Override
             public void operateOn(int lineStart) {
-                if (lineStart + 4 < getText().length()) {
-                    String linePrefix = getText().subSequence(lineStart, lineStart + 4).toString();
-                    if (linePrefix.equals("[ ] ") || linePrefix.equals("[x] ")) {
-                        getText().delete(lineStart, lineStart + 4);
-                    }
-                }
+                removeLinePrefixes(lineStart);
                 getText().insert(lineStart, "[x] ");
-                getText().setSpan(new ImageSpan(getContext(), checkboxCheckedRes, DynamicDrawableSpan.ALIGN_BASELINE), lineStart, lineStart + 3, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                getText().setSpan(getCheckboxCheckedImageSpan(), lineStart, lineStart + 3, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
             }
         });
     }

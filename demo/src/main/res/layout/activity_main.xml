@@ -51,6 +51,14 @@
             android:id="@+id/checkbox_checked"
             android:src="@drawable/ic_checkbox_marked_outline_black_24dp"
             style="@style/FormatButton" />
+        <ImageButton
+            android:id="@+id/list_bulleted"
+            android:src="@drawable/ic_format_list_bulleted_black_24dp"
+            style="@style/FormatButton" />
+        <ImageButton
+            android:id="@+id/list_numbers"
+            android:src="@drawable/ic_format_list_numbers_black_24dp"
+            style="@style/FormatButton" />
     </LinearLayout>
 
 </LinearLayout>

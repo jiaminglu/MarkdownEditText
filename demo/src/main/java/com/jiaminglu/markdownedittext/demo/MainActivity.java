@@ -48,6 +48,9 @@ public class MainActivity extends ActionBarActivity {
             case R.id.checkbox_checked:
                 editor.setLineCheckboxChecked();
                 break;
+            case R.id.list_bulleted:
+                editor.setLineBulleted();
+                break;
         }
     }
 
