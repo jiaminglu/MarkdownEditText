@@ -54,6 +54,9 @@ public class MainActivity extends ActionBarActivity {
             case R.id.list_numbers:
                 editor.setLineNumbered();
                 break;
+            case R.id.show_markdown:
+                editor.showMarkdown();
+                break;
         }
     }
 

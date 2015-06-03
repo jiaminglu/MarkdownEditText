@@ -322,4 +322,64 @@ public class MarkdownEditText extends EditText {
         });
     }
 
+    class SpanTag {
+        int position;
+        String tag;
+
+        public SpanTag(int position, String tag) {
+            this.position = position;
+            this.tag = tag;
+        }
+    }
+
+    public String convertToMarkdown() {
+        Object[] spans = getText().getSpans(0, length(), Object.class);
+
+        ArrayList<SpanTag> tags = new ArrayList<>(spans.length * 2);
+
+        for (Object span : spans) {
+            if (span instanceof LeadingMarginSpan) {
+                tags.add(new SpanTag(getText().getSpanStart(span), "\t"));
+            } else if (span instanceof BoldSpan) {
+                tags.add(new SpanTag(getText().getSpanStart(span), "<strong>"));
+                tags.add(new SpanTag(getText().getSpanEnd(span), "</strong>"));
+            } else if (span instanceof ItalicSpan) {
+                tags.add(new SpanTag(getText().getSpanStart(span), "<em>"));
+                tags.add(new SpanTag(getText().getSpanEnd(span), "</em>"));
+            } else if (span instanceof UnderlineSpan) {
+                tags.add(new SpanTag(getText().getSpanStart(span), "<u>"));
+                tags.add(new SpanTag(getText().getSpanEnd(span), "</u>"));
+            } else if (span instanceof StrikethroughSpan) {
+                tags.add(new SpanTag(getText().getSpanStart(span), "<del>"));
+                tags.add(new SpanTag(getText().getSpanEnd(span), "</del>"));
+            }
+        }
+
+        Collections.sort(tags, new Comparator<SpanTag>() {
+            @Override
+            public int compare(SpanTag lhs, SpanTag rhs) {
+                return lhs.position < rhs.position ? -1 : lhs.position == rhs.position ? 0 : 1;
+            }
+        });
+
+        StringBuilder builder = new StringBuilder();
+
+        int start = 0;
+        for (SpanTag tag : tags) {
+            if (tag.position > start)
+                builder.append(getText().subSequence(start, tag.position));
+            builder.append(tag.tag);
+            start = tag.position;
+        }
+
+        if (start < length())
+            builder.append(getText().subSequence(start, length()));
+
+        return builder.toString();
+    }
+
+    public void showMarkdown() {
+        setText(convertToMarkdown());
+    }
+
 }

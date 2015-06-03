@@ -59,6 +59,10 @@
             android:id="@+id/list_numbers"
             android:src="@drawable/ic_format_list_numbers_black_24dp"
             style="@style/FormatButton" />
+        <Button
+            android:id="@+id/show_markdown"
+            android:src="@drawable/ic_format_list_numbers_black_24dp"
+            style="@style/FormatButton" />
     </LinearLayout>
 
 </LinearLayout>
