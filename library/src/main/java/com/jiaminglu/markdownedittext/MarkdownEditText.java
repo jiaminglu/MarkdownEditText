@@ -55,6 +55,23 @@ public class MarkdownEditText extends EditText {
         init();
     }
 
+    @Override
+    public void onSelectionChanged(int selStart, int selEnd) {
+        boolean changed = false;
+        if (selStart > 2 && selStart <= length() && getText().charAt(selStart - 2) == '\n' && getText().charAt(selStart - 1) == ' ') {
+            selStart = selStart - 1;
+            changed = true;
+        }
+        if (selEnd > 2 && selEnd <= length() && getText().charAt(selEnd - 2) == '\n' && getText().charAt(selEnd - 1) == ' ') {
+            selEnd = selEnd - 1;
+            changed = true;
+        }
+        if (!changed)
+            super.onSelectionChanged(selStart, selEnd);
+        else
+            setSelection(selStart, selEnd);
+    }
+
     boolean viewSource = false;
 
     public void setCharacterStyleEnabled(boolean enableCharacterStyle) {
@@ -85,8 +102,21 @@ public class MarkdownEditText extends EditText {
                 int before = obefore;
                 int start = ostart;
                 int numbering;
-                while (count > 0 && start < s.length()) {
-                    if (s.charAt(start) == '\n') {
+                while (count >= 0 && start <= getText().length()) {
+                    if (start + 1 < getText().length() && getText().charAt(start) != '\n'
+                            && getText().charAt(start + 1) == ' '
+                            && (start + 2 == length() || getText().charAt(start + 2) == '\n')) {
+                        getText().delete(start + 1, start + 2);
+                        count --;
+                    }
+                    if (start <= getText().length() && start > 0 && getText().charAt(start - 1) == '\n' && (start == length() || getText().charAt(start) == '\n')) {
+                        getText().insert(start, " ");
+                        setSelection(start);
+                        start ++;
+                    }
+                    if (start < getText().length() && getText().charAt(start) == '\n') {
+                        if (start + 1  == s.length() || s.charAt(start + 1) == '\n')
+                            getText().insert(start + 1, " ");
                         for (LeadingMarginSpan span : getText().getSpans(start, start, LeadingMarginSpan.class)) {
                             int oldStart = getText().getSpanStart(span);
                             int oldEnd = getText().getSpanEnd(span);
@@ -113,28 +143,28 @@ public class MarkdownEditText extends EditText {
                                 }
                             }
                         }
-                        if (start + 4 <= s.length() && s.subSequence(start + 1, start + 4).toString().equals("[ ]")) {
+                        if (start + 4 <= getText().length() && getText().subSequence(start + 1, start + 4).toString().equals("[ ]")) {
                             getText().setSpan(getCheckboxImageSpan(), start + 1, start + 4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        } else if (start + 4 <= s.length() && s.subSequence(start + 1, start + 4).toString().equals("[x]")) {
+                        } else if (start + 4 <= getText().length() && getText().subSequence(start + 1, start + 4).toString().equals("[x]")) {
                             getText().setSpan(getCheckboxCheckedImageSpan(), start + 1, start + 4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                        } else if (start + 2 <= s.length() && s.subSequence(start + 1, start + 2).toString().equals("*")) {
+                        } else if (start + 2 <= getText().length() && getText().subSequence(start + 1, start + 2).toString().equals("*")) {
                             getText().setSpan(getBulletImageSpan(), start + 1, start + 2, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                         } else if ((numbering = getNumberingAtLine(start + 1)) != 0) {
                         } else if (count > 0 && start != 0) {
                             int prevStart = start - 1;
-                            if (!(prevStart >= 0 && s.charAt(prevStart) == '\n')) {
-                                while (prevStart > 0 && s.charAt(prevStart - 1) != '\n')
+                            if (!(prevStart >= 0 && getText().charAt(prevStart) == '\n')) {
+                                while (prevStart > 0 && getText().charAt(prevStart - 1) != '\n')
                                     prevStart--;
                             }
                             if (prevStart + 3 <= getText().length()) {
-                                String prevLinePrefix = s.subSequence(prevStart, prevStart + 3).toString();
+                                String prevLinePrefix = getText().subSequence(prevStart, prevStart + 3).toString();
                                 if (prevLinePrefix.startsWith("[ ]") || prevLinePrefix.startsWith("[x]")) {
                                     getText().insert(start + 1, "[ ] ");
                                     getText().setSpan(getCheckboxImageSpan(), start + 1, start + 4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                                 }
                             }
                             if (prevStart + 1 <= getText().length()) {
-                                String prevLinePrefix = s.subSequence(prevStart, prevStart + 1).toString();
+                                String prevLinePrefix = getText().subSequence(prevStart, prevStart + 1).toString();
                                 if (prevLinePrefix.startsWith("*")) {
                                     getText().insert(start + 1, "* ");
                                     getText().setSpan(getBulletImageSpan(), start + 1, start + 2, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
