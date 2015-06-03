@@ -59,10 +59,12 @@ public class MarkdownEditText extends EditText {
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
                 while (count > 0) {
                     if (s.charAt(start) == '\n' && start + 1 <= getText().length()) {
-                        for (LeadingMarginSpan span : getText().getSpans(start + 1, start + 1, LeadingMarginSpan.class))
+                        for (LeadingMarginSpan span : getText().getSpans(start + 1, start + count, LeadingMarginSpan.class))
                             getText().removeSpan(span);
+                        break;
                     }
                     count--;
+                    start++;
                 }
             }
 
