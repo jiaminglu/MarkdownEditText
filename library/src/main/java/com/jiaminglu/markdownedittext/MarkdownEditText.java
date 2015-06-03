@@ -85,7 +85,7 @@ public class MarkdownEditText extends EditText {
                 int before = obefore;
                 int start = ostart;
                 int numbering;
-                while (start < s.length()) {
+                while (count > 0 && start < s.length()) {
                     if (s.charAt(start) == '\n') {
                         for (LeadingMarginSpan span : getText().getSpans(start, start, LeadingMarginSpan.class)) {
                             int oldStart = getText().getSpanStart(span);
@@ -151,12 +151,14 @@ public class MarkdownEditText extends EditText {
                 }
                 start = ostart;
                 before = obefore;
-                if (before > 0 && thisLineStartsWith(getText(), start, "[ ]")) {
-                    clearLinePrefix(start - 3, start);
-                } else if (before > 0 && thisLineStartsWith(getText(), start, "[x]")) {
-                    clearLinePrefix(start - 3, start);
-                } else if (before > 0 && thisLineStartsWith(getText(), start, "*")) {
-                    clearLinePrefix(start - 1, start);
+                if (before > 0) {
+                    if (thisLineStartsWith(getText(), start, "[ ]")) {
+                        clearLinePrefix(start - 3, start);
+                    } else if (thisLineStartsWith(getText(), start, "[x]")) {
+                        clearLinePrefix(start - 3, start);
+                    } else if (thisLineStartsWith(getText(), start, "*")) {
+                        clearLinePrefix(start - 1, start);
+                    }
                 }
             }
 
