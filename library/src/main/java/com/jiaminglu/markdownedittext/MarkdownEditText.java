@@ -17,9 +17,6 @@ import android.text.style.LeadingMarginSpan;
 import android.text.style.StrikethroughSpan;
 import android.text.style.UnderlineSpan;
 import android.util.AttributeSet;
-import android.util.SparseArray;
-import android.util.SparseBooleanArray;
-import android.util.SparseIntArray;
 import android.widget.EditText;
 
 import java.util.ArrayList;
@@ -63,7 +60,7 @@ public class MarkdownEditText extends EditText {
                         for (LeadingMarginSpan span : getText().getSpans(start + 1, start + 1, LeadingMarginSpan.class))
                             getText().removeSpan(span);
                     }
-                    count --;
+                    count--;
                 }
             }
 
@@ -77,6 +74,23 @@ public class MarkdownEditText extends EditText {
                             getText().removeSpan(span);
                             getText().setSpan(span, oldStart, start, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                             getText().setSpan(new LeadingMarginSpan.Standard((int) getTextSize()), start + 1, oldEnd, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                        }
+                    }
+                    for (CharacterStyle span : getText().getSpans(start, start, CharacterStyle.class)) {
+                        int oldStart = getText().getSpanStart(span);
+                        int oldEnd = getText().getSpanEnd(span);
+                        if (oldStart < start && oldEnd > start) {
+                            getText().removeSpan(span);
+                            getText().setSpan(span, oldStart, start, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                            if (oldEnd > start + 1) {
+                                try {
+                                    getText().setSpan(span.getClass().newInstance(), start + 1, oldEnd, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                                } catch (InstantiationException e) {
+                                    e.printStackTrace();
+                                } catch (IllegalAccessException e) {
+                                    e.printStackTrace();
+                                }
+                            }
                         }
                     }
                     if (count > 0 && start != 0) {
@@ -133,9 +147,7 @@ public class MarkdownEditText extends EditText {
         getText().delete(st, en);
     }
 
-    public void toggleStyleSpan(CharacterStyle newSpan) {
-        int start = getSelectionStart();
-        int end = getSelectionEnd();
+    private void toggleStyleSpan(CharacterStyle newSpan, int start, int end) {
         if (start < 0 || end > getText().length())
             return;
         CharacterStyle[] spans = getText().getSpans(start-1, end+1, newSpan.getClass());
@@ -157,6 +169,24 @@ public class MarkdownEditText extends EditText {
             getText().removeSpan(span);
         }
         getText().setSpan(newSpan, start, end, Spannable.SPAN_INCLUSIVE_INCLUSIVE);
+    }
+
+    public void toggleStyleSpan(CharacterStyle newSpan) {
+        int start = getSelectionStart();
+        int end = getSelectionEnd();
+        while (start < end) {
+            int nl = start;
+            while (nl < end && getText().charAt(nl) != '\n')
+                nl++;
+            try {
+                toggleStyleSpan(newSpan.getClass().newInstance(), start, nl);
+            } catch (InstantiationException e) {
+                e.printStackTrace();
+            } catch (IllegalAccessException e) {
+                e.printStackTrace();
+            }
+            start = nl + 1;
+        }
     }
 
     public void toggleBold() {
@@ -348,20 +378,20 @@ public class MarkdownEditText extends EditText {
         ArrayList<SpanTag> tags = new ArrayList<>(spans.length * 2);
 
         for (Object span : spans) {
-            if (span instanceof LeadingMarginSpan) {
-                tags.add(new SpanTag(getText().getSpanStart(span), "\t"));
-            } else if (span instanceof BoldSpan) {
-                tags.add(new SpanTag(getText().getSpanStart(span), "<strong>"));
-                tags.add(new SpanTag(getText().getSpanEnd(span), "</strong>"));
+            int start = getText().getSpanStart(span);
+            int end = getText().getSpanEnd(span);
+            if (span instanceof BoldSpan) {
+                tags.add(new SpanTag(start, "<strong>"));
+                tags.add(new SpanTag(end, "</strong>"));
             } else if (span instanceof ItalicSpan) {
-                tags.add(new SpanTag(getText().getSpanStart(span), "<em>"));
-                tags.add(new SpanTag(getText().getSpanEnd(span), "</em>"));
+                tags.add(new SpanTag(start, "<em>"));
+                tags.add(new SpanTag(end, "</em>"));
             } else if (span instanceof UnderlineSpan) {
-                tags.add(new SpanTag(getText().getSpanStart(span), "<u>"));
-                tags.add(new SpanTag(getText().getSpanEnd(span), "</u>"));
+                tags.add(new SpanTag(start, "<u>"));
+                tags.add(new SpanTag(end, "</u>"));
             } else if (span instanceof StrikethroughSpan) {
-                tags.add(new SpanTag(getText().getSpanStart(span), "<del>"));
-                tags.add(new SpanTag(getText().getSpanEnd(span), "</del>"));
+                tags.add(new SpanTag(start, "<del>"));
+                tags.add(new SpanTag(end, "</del>"));
             }
         }
 
@@ -451,14 +481,15 @@ public class MarkdownEditText extends EditText {
             Stack<SpanTag> tagStack = new Stack<>();
 
             int charDiffInParagraph = tabs;
+            int paragraphStart = matcher.start() - charDiff;
 
             Matcher tagMatcher = styleTag.matcher(paragraph);
             while (tagMatcher.find()) {
                 if (tagMatcher.group(1).isEmpty()) {
-                    tagStack.push(new SpanTag(tagMatcher.start() - charDiff - charDiffInParagraph, tagMatcher.group(2)));
+                    tagStack.push(new SpanTag(paragraphStart + tagMatcher.start() - charDiffInParagraph, tagMatcher.group(2)));
                 } else {
                     while (!tagStack.empty()) {
-                        spans.add(new SpanPosition(tagStack.peek().position, tagMatcher.start() - charDiff - charDiffInParagraph, getStyleSpan(tagStack.peek().tag), Spannable.SPAN_INCLUSIVE_INCLUSIVE));
+                        spans.add(new SpanPosition(tagStack.peek().position, paragraphStart + tagMatcher.start() - charDiffInParagraph, getStyleSpan(tagStack.peek().tag), Spannable.SPAN_INCLUSIVE_INCLUSIVE));
                         if (tagStack.peek().tag.equals(tagMatcher.group(2))) {
                             tagStack.pop();
                             break;
@@ -475,7 +506,7 @@ public class MarkdownEditText extends EditText {
 
             if (!paragraph.isEmpty()) {
                 for (int i = 0; i < tabs; i++)
-                    spans.add(new SpanPosition(matcher.start() - charDiff, matcher.end() - charDiff - charDiffInParagraph, new LeadingMarginSpan.Standard((int) getTextSize()), Spanned.SPAN_INCLUSIVE_INCLUSIVE));
+                    spans.add(new SpanPosition(paragraphStart, matcher.end() - charDiff - charDiffInParagraph, new LeadingMarginSpan.Standard((int) getTextSize()), Spanned.SPAN_INCLUSIVE_INCLUSIVE));
             }
             charDiff += charDiffInParagraph;
             matcher.appendReplacement(output, paragraph);
