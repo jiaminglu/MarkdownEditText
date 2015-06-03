@@ -179,7 +179,8 @@ public class MarkdownEditText extends EditText {
             while (nl < end && getText().charAt(nl) != '\n')
                 nl++;
             try {
-                toggleStyleSpan(newSpan.getClass().newInstance(), start, nl);
+                if (start != nl)
+                    toggleStyleSpan(newSpan.getClass().newInstance(), start, nl);
             } catch (InstantiationException e) {
                 e.printStackTrace();
             } catch (IllegalAccessException e) {
@@ -488,10 +489,10 @@ public class MarkdownEditText extends EditText {
             Matcher tagMatcher = styleTag.matcher(paragraph);
             while (tagMatcher.find()) {
                 if (tagMatcher.group(1).isEmpty()) {
-                    tagStack.push(new SpanTag(paragraphStart + tagMatcher.start() - charDiffInParagraph, tagMatcher.group(2)));
+                    tagStack.push(new SpanTag(paragraphStart + tagMatcher.start() + tabs - charDiffInParagraph, tagMatcher.group(2)));
                 } else {
                     while (!tagStack.empty()) {
-                        spans.add(new SpanPosition(tagStack.peek().position, paragraphStart + tagMatcher.start() - charDiffInParagraph, getStyleSpan(tagStack.peek().tag), Spannable.SPAN_INCLUSIVE_INCLUSIVE));
+                        spans.add(new SpanPosition(tagStack.peek().position, paragraphStart + tagMatcher.start() + tabs - charDiffInParagraph, getStyleSpan(tagStack.peek().tag), Spannable.SPAN_INCLUSIVE_INCLUSIVE));
                         if (tagStack.peek().tag.equals(tagMatcher.group(2))) {
                             tagStack.pop();
                             break;
@@ -508,7 +509,7 @@ public class MarkdownEditText extends EditText {
 
             if (!paragraph.isEmpty()) {
                 for (int i = 0; i < tabs; i++)
-                    spans.add(new SpanPosition(paragraphStart, matcher.end() - charDiff - charDiffInParagraph, new LeadingMarginSpan.Standard((int) getTextSize()), Spanned.SPAN_INCLUSIVE_INCLUSIVE));
+                    spans.add(new SpanPosition(matcher.start() - charDiff, matcher.end() - charDiff - charDiffInParagraph, new LeadingMarginSpan.Standard((int) getTextSize()), Spanned.SPAN_INCLUSIVE_INCLUSIVE));
             }
             charDiff += charDiffInParagraph;
             matcher.appendReplacement(output, paragraph);
