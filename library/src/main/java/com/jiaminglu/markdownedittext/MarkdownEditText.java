@@ -51,6 +51,8 @@ public class MarkdownEditText extends EditText {
         init();
     }
 
+    boolean viewSource = false;
+
     private void init() {
         addTextChangedListener(new TextWatcher() {
             @Override
@@ -65,60 +67,78 @@ public class MarkdownEditText extends EditText {
             }
 
             @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                if (start < s.length() && s.charAt(start) == '\n') {
-                    for (LeadingMarginSpan span : getText().getSpans(start, start, LeadingMarginSpan.class)) {
-                        int oldStart = getText().getSpanStart(span);
-                        int oldEnd = getText().getSpanEnd(span);
-                        if (oldStart < start && oldEnd > start) {
-                            getText().removeSpan(span);
-                            getText().setSpan(span, oldStart, start, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
-                            getText().setSpan(new LeadingMarginSpan.Standard((int) getTextSize()), start + 1, oldEnd, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+            public void onTextChanged(CharSequence s, int ostart, int obefore, int count) {
+                if (viewSource)
+                    return;
+                int before = obefore;
+                int start = ostart;
+                int numbering;
+                while (start < s.length()) {
+                    if (s.charAt(start) == '\n') {
+                        for (LeadingMarginSpan span : getText().getSpans(start, start, LeadingMarginSpan.class)) {
+                            int oldStart = getText().getSpanStart(span);
+                            int oldEnd = getText().getSpanEnd(span);
+                            if (oldStart < start && oldEnd > start) {
+                                getText().removeSpan(span);
+                                getText().setSpan(span, oldStart, start, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                                getText().setSpan(new LeadingMarginSpan.Standard((int) getTextSize()), start + 1, oldEnd, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                            }
                         }
-                    }
-                    for (CharacterStyle span : getText().getSpans(start, start, CharacterStyle.class)) {
-                        int oldStart = getText().getSpanStart(span);
-                        int oldEnd = getText().getSpanEnd(span);
-                        if (oldStart < start && oldEnd > start) {
-                            getText().removeSpan(span);
-                            getText().setSpan(span, oldStart, start, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
-                            if (oldEnd > start + 1) {
-                                try {
-                                    getText().setSpan(span.getClass().newInstance(), start + 1, oldEnd, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
-                                } catch (InstantiationException e) {
-                                    e.printStackTrace();
-                                } catch (IllegalAccessException e) {
-                                    e.printStackTrace();
+                        for (CharacterStyle span : getText().getSpans(start, start, CharacterStyle.class)) {
+                            int oldStart = getText().getSpanStart(span);
+                            int oldEnd = getText().getSpanEnd(span);
+                            if (oldStart < start && oldEnd > start) {
+                                getText().removeSpan(span);
+                                getText().setSpan(span, oldStart, start, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                                if (oldEnd > start + 1) {
+                                    try {
+                                        getText().setSpan(span.getClass().newInstance(), start + 1, oldEnd, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                                    } catch (InstantiationException e) {
+                                        e.printStackTrace();
+                                    } catch (IllegalAccessException e) {
+                                        e.printStackTrace();
+                                    }
                                 }
                             }
                         }
-                    }
-                    if (count > 0 && start != 0) {
-                        int prevStart = start - 1;
-                        if (!(prevStart >= 0 && s.charAt(prevStart) == '\n')) {
-                            while (prevStart > 0 && s.charAt(prevStart - 1) != '\n')
-                                prevStart--;
-                        }
-                        if (prevStart + 3 <= getText().length()) {
-                            String prevLinePrefix = s.subSequence(prevStart, prevStart + 3).toString();
-                            if (prevLinePrefix.startsWith("[ ]") || prevLinePrefix.startsWith("[x]")) {
-                                getText().insert(start + 1, "[ ] ");
-                                getText().setSpan(getCheckboxImageSpan(), start + 1, start + 4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        if (start + 4 <= s.length() && s.subSequence(start + 1, start + 4).toString().equals("[ ]")) {
+                            getText().setSpan(getCheckboxImageSpan(), start + 1, start + 4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        } else if (start + 4 <= s.length() && s.subSequence(start + 1, start + 4).toString().equals("[x]")) {
+                            getText().setSpan(getCheckboxCheckedImageSpan(), start + 1, start + 4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        } else if (start + 2 <= s.length() && s.subSequence(start + 1, start + 2).toString().equals("*")) {
+                            getText().setSpan(getBulletImageSpan(), start + 1, start + 2, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        } else if ((numbering = getNumberingAtLine(start + 1)) != 0) {
+                        } else if (count > 0 && start != 0) {
+                            int prevStart = start - 1;
+                            if (!(prevStart >= 0 && s.charAt(prevStart) == '\n')) {
+                                while (prevStart > 0 && s.charAt(prevStart - 1) != '\n')
+                                    prevStart--;
+                            }
+                            if (prevStart + 3 <= getText().length()) {
+                                String prevLinePrefix = s.subSequence(prevStart, prevStart + 3).toString();
+                                if (prevLinePrefix.startsWith("[ ]") || prevLinePrefix.startsWith("[x]")) {
+                                    getText().insert(start + 1, "[ ] ");
+                                    getText().setSpan(getCheckboxImageSpan(), start + 1, start + 4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                                }
+                            }
+                            if (prevStart + 1 <= getText().length()) {
+                                String prevLinePrefix = s.subSequence(prevStart, prevStart + 1).toString();
+                                if (prevLinePrefix.startsWith("*")) {
+                                    getText().insert(start + 1, "* ");
+                                    getText().setSpan(getBulletImageSpan(), start + 1, start + 2, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                                }
+                            }
+                            if ((numbering = getNumberingAtLine(prevStart)) != 0) {
+                                getText().insert(start + 1, String.valueOf(numbering + 1) + ". ");
                             }
                         }
-                        if (prevStart + 1 <= getText().length()) {
-                            String prevLinePrefix = s.subSequence(prevStart, prevStart + 1).toString();
-                            if (prevLinePrefix.startsWith("*")) {
-                                getText().insert(start + 1, "* ");
-                                getText().setSpan(getBulletImageSpan(), start + 1, start + 2, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
-                            }
-                        }
-                        int numbering;
-                        if ((numbering = getNumberingAtLine(prevStart)) != 0) {
-                            getText().insert(start + 1, String.valueOf(numbering + 1) + ". ");
-                        }
                     }
+                    start ++;
+                    before --;
+                    count --;
                 }
+                start = ostart;
+                before = obefore;
                 if (before > 0 && thisLineStartsWith(getText(), start, "[ ]")) {
                     clearLinePrefix(start - 3, start);
                 } else if (before > 0 && thisLineStartsWith(getText(), start, "[x]")) {
@@ -438,8 +458,14 @@ public class MarkdownEditText extends EditText {
         return builder.toString();
     }
 
-    public void showMarkdown() {
-        setText(convertToMarkdown());
+    public void toggleViewSource() {
+        if (viewSource) {
+            viewSource = false;
+            setMarkdown(getText().toString());
+        } else {
+            viewSource = true;
+            setText(convertToMarkdown());
+        }
     }
 
     class SpanPosition {
@@ -537,10 +563,6 @@ public class MarkdownEditText extends EditText {
 
     public void setMarkdown(String markdown) {
         setText(convertToRichText(markdown));
-    }
-
-    public void showRichText() {
-        setMarkdown(getText().toString());
     }
 
 }
