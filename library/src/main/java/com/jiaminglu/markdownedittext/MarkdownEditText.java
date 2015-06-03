@@ -13,10 +13,15 @@ import android.text.TextWatcher;
 import android.text.style.CharacterStyle;
 import android.text.style.DynamicDrawableSpan;
 import android.text.style.ImageSpan;
+import android.text.style.LeadingMarginSpan;
 import android.text.style.StrikethroughSpan;
 import android.text.style.UnderlineSpan;
 import android.util.AttributeSet;
 import android.widget.EditText;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 
 /**
  * Created by jiaminglu on 15/6/2.
@@ -47,34 +52,46 @@ public class MarkdownEditText extends EditText {
         addTextChangedListener(new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+                while (count > 0) {
+                    if (s.charAt(start) == '\n' && start + 1 <= getText().length()) {
+                        for (LeadingMarginSpan span : getText().getSpans(start + 1, start + 1, LeadingMarginSpan.class))
+                            getText().removeSpan(span);
+                    }
+                    count --;
+                }
             }
 
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 if (start < s.length() && s.charAt(start) == '\n') {
+                    for (LeadingMarginSpan span : getText().getSpans(start, start, LeadingMarginSpan.class)) {
+                        int oldStart = getText().getSpanStart(span);
+                        int oldEnd = getText().getSpanEnd(span);
+                        if (oldStart < start && oldEnd > start) {
+                            getText().removeSpan(span);
+                            getText().setSpan(span, oldStart, start, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                            getText().setSpan(new LeadingMarginSpan.Standard((int) getTextSize()), start + 1, oldEnd, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                        }
+                    }
                     int prevStart = start - 1;
                     while (prevStart > 0 && s.charAt(prevStart - 1) != '\n')
                         prevStart--;
-                    while (s.charAt(prevStart) == '\t') {
-                        getText().insert(++start, "\t");
-                        prevStart++;
-                    }
-                    if (prevStart + 3 <= getText().length()) {
+                    if (count > 0 && prevStart + 3 <= getText().length()) {
                         String prevLinePrefix = s.subSequence(prevStart, prevStart + 3).toString();
                         if (prevLinePrefix.startsWith("[ ]") || prevLinePrefix.startsWith("[x]")) {
                             getText().insert(start + 1, "[ ] ");
                             getText().setSpan(getCheckboxImageSpan(), start + 1, start + 4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                         }
                     }
-                    if (prevStart + 1 <= getText().length()) {
+                    if (count > 0 && prevStart + 1 <= getText().length()) {
                         String prevLinePrefix = s.subSequence(prevStart, prevStart + 1).toString();
                         if (prevLinePrefix.startsWith("*")) {
                             getText().insert(start + 1, "* ");
                             getText().setSpan(getBulletImageSpan(), start + 1, start + 2, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                         }
                     }
-                    int numbering = getNumberingAtLine(prevStart);
-                    if (numbering != 0) {
+                    int numbering;
+                    if (count > 0 && (numbering = getNumberingAtLine(prevStart)) != 0) {
                         getText().insert(start + 1, String.valueOf(numbering + 1) + ". ");
                     }
                 }
@@ -157,8 +174,6 @@ public class MarkdownEditText extends EditText {
             start --;
         }
         while (true) {
-            while (start < getText().length() && getText().charAt(start) == '\t')
-                start ++;
             lineOperation.operateOn(start);
             start ++;
             while (start < getText().length() && (getText().charAt(start - 1) != '\n'))
@@ -172,7 +187,10 @@ public class MarkdownEditText extends EditText {
         operationOnLines(new LineOperation() {
             @Override
             public void operateOn(int lineStart) {
-                getText().insert(lineStart, "\t");
+                int end = lineStart;
+                while (end < getText().length() && (getText().charAt(end) != '\n'))
+                    end ++;
+                getText().setSpan(new LeadingMarginSpan.Standard((int) getTextSize()), lineStart, end, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
             }
         });
     }
@@ -181,8 +199,12 @@ public class MarkdownEditText extends EditText {
         operationOnLines(new LineOperation() {
             @Override
             public void operateOn(int lineStart) {
-                if (lineStart > 0 && getText().charAt(lineStart - 1) == '\t')
-                    getText().delete(lineStart - 1, lineStart);
+                int end = lineStart;
+                while (end < getText().length() && (getText().charAt(end) != '\n'))
+                    end ++;
+                LeadingMarginSpan[] spans = getText().getSpans(lineStart, end, LeadingMarginSpan.class);
+                if (spans.length > 0)
+                    getText().removeSpan(spans[0]);
             }
         });
     }
