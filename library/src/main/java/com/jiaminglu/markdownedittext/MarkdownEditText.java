@@ -81,8 +81,10 @@ public class MarkdownEditText extends EditText {
                     }
                     if (count > 0 && start != 0) {
                         int prevStart = start - 1;
-                        while (prevStart > 0 && s.charAt(prevStart - 1) != '\n')
-                            prevStart--;
+                        if (!(prevStart >= 0 && s.charAt(prevStart) == '\n')) {
+                            while (prevStart > 0 && s.charAt(prevStart - 1) != '\n')
+                                prevStart--;
+                        }
                         if (prevStart + 3 <= getText().length()) {
                             String prevLinePrefix = s.subSequence(prevStart, prevStart + 3).toString();
                             if (prevLinePrefix.startsWith("[ ]") || prevLinePrefix.startsWith("[x]")) {
@@ -471,8 +473,10 @@ public class MarkdownEditText extends EditText {
 
             paragraph = paraOut.toString();
 
-            for (int i = 0; i < tabs; i++)
-                spans.add(new SpanPosition(matcher.start() - charDiff, matcher.end() - charDiff - charDiffInParagraph, new LeadingMarginSpan.Standard((int) getTextSize()), Spanned.SPAN_INCLUSIVE_INCLUSIVE));
+            if (!paragraph.isEmpty()) {
+                for (int i = 0; i < tabs; i++)
+                    spans.add(new SpanPosition(matcher.start() - charDiff, matcher.end() - charDiff - charDiffInParagraph, new LeadingMarginSpan.Standard((int) getTextSize()), Spanned.SPAN_INCLUSIVE_INCLUSIVE));
+            }
             charDiff += charDiffInParagraph;
             matcher.appendReplacement(output, paragraph);
         }
