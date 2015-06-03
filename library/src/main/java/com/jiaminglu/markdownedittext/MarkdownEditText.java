@@ -9,14 +9,18 @@ import android.text.Editable;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.Spanned;
+import android.text.TextPaint;
 import android.text.TextWatcher;
+import android.text.method.LinkMovementMethod;
 import android.text.style.CharacterStyle;
+import android.text.style.ClickableSpan;
 import android.text.style.DynamicDrawableSpan;
 import android.text.style.ImageSpan;
 import android.text.style.LeadingMarginSpan;
 import android.text.style.StrikethroughSpan;
 import android.text.style.UnderlineSpan;
 import android.util.AttributeSet;
+import android.view.View;
 import android.widget.EditText;
 
 import java.util.ArrayList;
@@ -574,6 +578,48 @@ public class MarkdownEditText extends EditText {
 
     public void setMarkdown(String markdown) {
         setText(convertToRichText(markdown));
+    }
+
+    void setupCheckboxClickable(final int start, final int end, final boolean checked) {
+        getText().setSpan(new ClickableSpan() {
+            @Override
+            public void onClick(View widget) {
+                setSelection(start);
+                if (checked)
+                    setLineCheckbox();
+                else
+                    setLineCheckboxChecked();
+                getText().removeSpan(this);
+                setupCheckboxClickable(start, end, !checked);
+            }
+
+            @Override
+            public void updateDrawState(TextPaint ds) {
+            }
+        }, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    }
+
+    public void enterViewMode() {
+        setFocusable(false);
+        setLinksClickable(true);
+        setMovementMethod(LinkMovementMethod.getInstance());
+
+        Pattern checkboxes = Pattern.compile("(?m)^\\[( |x)\\].*$");
+        Matcher matcher = checkboxes.matcher(getText());
+        while (matcher.find()) {
+            int linestart = matcher.start();
+            int lineend = matcher.end();
+            setupCheckboxClickable(linestart, lineend, getText().charAt(linestart + 1) == 'x');
+        }
+    }
+
+    public void exitViewMode() {
+        for (ClickableSpan span : getText().getSpans(0, length(), ClickableSpan.class)) {
+            getText().removeSpan(span);
+        }
+        setFocusable(true);
+        setFocusableInTouchMode(true);
+        setLinksClickable(false);
     }
 
 }

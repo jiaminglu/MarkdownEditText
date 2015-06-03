@@ -5,6 +5,7 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.Button;
 
 import com.jiaminglu.markdownedittext.MarkdownEditText;
 
@@ -57,6 +58,14 @@ public class MainActivity extends ActionBarActivity {
             case R.id.show_markdown:
                 editor.toggleViewSource();
                 break;
+            case R.id.toggle_edit:
+                if (((Button) v).getText().toString().equals("VIEW")) {
+                    ((Button) v).setText("EDIT");
+                    editor.enterViewMode();
+                } else {
+                    ((Button) v).setText("VIEW");
+                    editor.exitViewMode();
+                }
         }
     }
 
