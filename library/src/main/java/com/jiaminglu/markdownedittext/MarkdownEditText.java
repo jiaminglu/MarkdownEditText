@@ -228,7 +228,7 @@ public class MarkdownEditText extends EditText {
             @Override
             public void operateOn(int lineStart) {
                 int end = lineStart;
-                while (end < getText().length() && (getText().charAt(end) != '\n'))
+                while (end < getText().length() && ((end == lineStart && getText().charAt(lineStart) != '\n') || getText().charAt(end) != '\n'))
                     end ++;
                 getText().setSpan(new LeadingMarginSpan.Standard((int) getTextSize()), lineStart, end, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
             }
@@ -380,7 +380,9 @@ public class MarkdownEditText extends EditText {
         for (Object span : spans) {
             int start = getText().getSpanStart(span);
             int end = getText().getSpanEnd(span);
-            if (span instanceof BoldSpan) {
+            if (span instanceof LeadingMarginSpan) {
+                tags.add(new SpanTag(start, "\t"));
+            } else if (span instanceof BoldSpan) {
                 tags.add(new SpanTag(start, "<strong>"));
                 tags.add(new SpanTag(end, "</strong>"));
             } else if (span instanceof ItalicSpan) {
