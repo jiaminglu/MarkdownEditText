@@ -22,18 +22,22 @@
         <ImageButton
             android:id="@+id/bold"
             android:src="@drawable/ic_format_bold_black_24dp"
+            android:visibility="gone"
             style="@style/FormatButton" />
         <ImageButton
             android:id="@+id/italic"
             android:src="@drawable/ic_format_italic_black_24dp"
+            android:visibility="gone"
             style="@style/FormatButton" />
         <ImageButton
             android:id="@+id/underline"
             android:src="@drawable/ic_format_underline_black_24dp"
+            android:visibility="gone"
             style="@style/FormatButton" />
         <ImageButton
             android:id="@+id/strikethrough"
             android:src="@drawable/ic_format_strikethrough_black_24dp"
+            android:visibility="gone"
             style="@style/FormatButton" />
         <ImageButton
             android:id="@+id/indent_in"

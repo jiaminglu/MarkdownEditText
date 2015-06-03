@@ -53,6 +53,12 @@ public class MarkdownEditText extends EditText {
 
     boolean viewSource = false;
 
+    public void setCharacterStyleEnabled(boolean enableCharacterStyle) {
+        this.enableCharacterStyle = enableCharacterStyle;
+    }
+
+    boolean enableCharacterStyle = false;
+
     private void init() {
         addTextChangedListener(new TextWatcher() {
             @Override
@@ -405,18 +411,20 @@ public class MarkdownEditText extends EditText {
             int end = getText().getSpanEnd(span);
             if (span instanceof LeadingMarginSpan) {
                 tags.add(new SpanTag(start, "\t"));
-            } else if (span instanceof BoldSpan) {
-                tags.add(new SpanTag(start, "<strong>"));
-                tags.add(new SpanTag(end, "</strong>"));
-            } else if (span instanceof ItalicSpan) {
-                tags.add(new SpanTag(start, "<em>"));
-                tags.add(new SpanTag(end, "</em>"));
-            } else if (span instanceof UnderlineSpan) {
-                tags.add(new SpanTag(start, "<u>"));
-                tags.add(new SpanTag(end, "</u>"));
-            } else if (span instanceof StrikethroughSpan) {
-                tags.add(new SpanTag(start, "<del>"));
-                tags.add(new SpanTag(end, "</del>"));
+            } else if (enableCharacterStyle) {
+                if (span instanceof BoldSpan) {
+                    tags.add(new SpanTag(start, "<strong>"));
+                    tags.add(new SpanTag(end, "</strong>"));
+                } else if (span instanceof ItalicSpan) {
+                    tags.add(new SpanTag(start, "<em>"));
+                    tags.add(new SpanTag(end, "</em>"));
+                } else if (span instanceof UnderlineSpan) {
+                    tags.add(new SpanTag(start, "<u>"));
+                    tags.add(new SpanTag(end, "</u>"));
+                } else if (span instanceof StrikethroughSpan) {
+                    tags.add(new SpanTag(start, "<del>"));
+                    tags.add(new SpanTag(end, "</del>"));
+                }
             }
         }
 
@@ -507,33 +515,34 @@ public class MarkdownEditText extends EditText {
         while (matcher.find()) {
             int tabs = matcher.group(1).length();
 
-            StringBuffer paraOut = new StringBuffer();
             String paragraph = matcher.group(2);
-            Stack<SpanTag> tagStack = new Stack<>();
 
             int charDiffInParagraph = tabs;
-            int paragraphStart = matcher.start() - charDiff;
 
-            Matcher tagMatcher = styleTag.matcher(paragraph);
-            while (tagMatcher.find()) {
-                if (tagMatcher.group(1).isEmpty()) {
-                    tagStack.push(new SpanTag(paragraphStart + tagMatcher.start() + tabs - charDiffInParagraph, tagMatcher.group(2)));
-                } else {
-                    while (!tagStack.empty()) {
-                        spans.add(new SpanPosition(tagStack.peek().position, paragraphStart + tagMatcher.start() + tabs - charDiffInParagraph, getStyleSpan(tagStack.peek().tag), Spannable.SPAN_INCLUSIVE_INCLUSIVE));
-                        if (tagStack.peek().tag.equals(tagMatcher.group(2))) {
+            if (enableCharacterStyle) {
+                Stack<SpanTag> tagStack = new Stack<>();
+                int paragraphStart = matcher.start() - charDiff;
+                StringBuffer paraOut = new StringBuffer();
+                Matcher tagMatcher = styleTag.matcher(paragraph);
+                while (tagMatcher.find()) {
+                    if (tagMatcher.group(1).isEmpty()) {
+                        tagStack.push(new SpanTag(paragraphStart + tagMatcher.start() + tabs - charDiffInParagraph, tagMatcher.group(2)));
+                    } else {
+                        while (!tagStack.empty()) {
+                            spans.add(new SpanPosition(tagStack.peek().position, paragraphStart + tagMatcher.start() + tabs - charDiffInParagraph, getStyleSpan(tagStack.peek().tag), Spannable.SPAN_INCLUSIVE_INCLUSIVE));
+                            if (tagStack.peek().tag.equals(tagMatcher.group(2))) {
+                                tagStack.pop();
+                                break;
+                            }
                             tagStack.pop();
-                            break;
                         }
-                        tagStack.pop();
                     }
+                    charDiffInParagraph += tagMatcher.end() - tagMatcher.start();
+                    tagMatcher.appendReplacement(paraOut, "");
                 }
-                charDiffInParagraph += tagMatcher.end() - tagMatcher.start();
-                tagMatcher.appendReplacement(paraOut, "");
+                tagMatcher.appendTail(paraOut);
+                paragraph = paraOut.toString();
             }
-            tagMatcher.appendTail(paraOut);
-
-            paragraph = paraOut.toString();
 
             if (!paragraph.isEmpty()) {
                 for (int i = 0; i < tabs; i++)
