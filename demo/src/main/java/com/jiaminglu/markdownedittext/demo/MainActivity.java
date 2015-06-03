@@ -55,10 +55,7 @@ public class MainActivity extends ActionBarActivity {
                 editor.setLineNumbered();
                 break;
             case R.id.show_markdown:
-                editor.showMarkdown();
-                break;
-            case R.id.show_richtext:
-                editor.showRichText();
+                editor.toggleViewSource();
                 break;
         }
     }
