@@ -57,6 +57,9 @@ public class MainActivity extends ActionBarActivity {
             case R.id.show_markdown:
                 editor.showMarkdown();
                 break;
+            case R.id.show_richtext:
+                editor.showRichText();
+                break;
         }
     }
 

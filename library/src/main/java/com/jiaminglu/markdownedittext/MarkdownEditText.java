@@ -4,10 +4,10 @@ import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.ShapeDrawable;
-import android.graphics.drawable.shapes.OvalShape;
 import android.os.Build;
 import android.text.Editable;
 import android.text.Spannable;
+import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.TextWatcher;
 import android.text.style.CharacterStyle;
@@ -17,11 +17,16 @@ import android.text.style.LeadingMarginSpan;
 import android.text.style.StrikethroughSpan;
 import android.text.style.UnderlineSpan;
 import android.util.AttributeSet;
+import android.util.SparseArray;
+import android.util.SparseBooleanArray;
+import android.util.SparseIntArray;
 import android.widget.EditText;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Created by jiaminglu on 15/6/2.
@@ -95,11 +100,11 @@ public class MarkdownEditText extends EditText {
                         getText().insert(start + 1, String.valueOf(numbering + 1) + ". ");
                     }
                 }
-                if (before > 0 && thisLineStartsWith(start, "[ ]")) {
+                if (before > 0 && thisLineStartsWith(getText(), start, "[ ]")) {
                     clearLinePrefix(start - 3, start);
-                } else if (before > 0 && thisLineStartsWith(start, "[x]")) {
+                } else if (before > 0 && thisLineStartsWith(getText(), start, "[x]")) {
                     clearLinePrefix(start - 3, start);
-                } else if (before > 0 && thisLineStartsWith(start, "*")) {
+                } else if (before > 0 && thisLineStartsWith(getText(), start, "*")) {
                     clearLinePrefix(start - 1, start);
                 }
             }
@@ -111,9 +116,9 @@ public class MarkdownEditText extends EditText {
         });
     }
 
-    private boolean thisLineStartsWith(int position, String string) {
+    private boolean thisLineStartsWith(Spannable spannable, int position, String string) {
         int start = position - string.length();
-        return ((start > 0 && getText().charAt(start - 1) == '\n') || start == 0) && getText().subSequence(start, position).toString().equals(string);
+        return ((start > 0 && spannable.charAt(start - 1) == '\n') || start == 0) && spannable.subSequence(start, position).toString().equals(string);
     }
 
     private void clearLinePrefix(int st, int en) {
@@ -380,6 +385,63 @@ public class MarkdownEditText extends EditText {
 
     public void showMarkdown() {
         setText(convertToMarkdown());
+    }
+
+    class SpanPosition {
+        int from;
+        int to;
+        Object span;
+        int type;
+
+        public SpanPosition(int from, int to, Object span, int type) {
+            this.from = from;
+            this.to = to;
+            this.span = span;
+            this.type = type;
+        }
+    }
+
+    public Spannable convertToRichText(CharSequence string) {
+        StringBuffer output = new StringBuffer();
+
+        Pattern tab = Pattern.compile("(?m)^(\\t*)(.*)$");
+        Matcher matcher = tab.matcher(string);
+        ArrayList<SpanPosition> spans = new ArrayList<>();
+        int charDiff = 0;
+        while (matcher.find()) {
+            int tabs = matcher.group(1).length();
+            for (int i = 0; i < tabs; i++)
+                spans.add(new SpanPosition(matcher.start() - charDiff, matcher.end() - charDiff - tabs, new LeadingMarginSpan.Standard((int) getTextSize()), Spanned.SPAN_INCLUSIVE_INCLUSIVE));
+            charDiff += tabs;
+            matcher.appendReplacement(output, matcher.group(2));
+        }
+        matcher.appendTail(output);
+
+        SpannableString s = new SpannableString(output);
+        for (SpanPosition spanPosition : spans) {
+            s.setSpan(spanPosition.span, spanPosition.from, spanPosition.to, spanPosition.type);
+        }
+
+        for (int i = 0; i < s.length(); i++) {
+            if (i == 0 || s.charAt(i - 1) == '\n') {
+                if (i + 3 <= s.length() && s.subSequence(i, i + 3).toString().equals("[ ]")) {
+                    s.setSpan(getCheckboxImageSpan(), i, i+3, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                } else if (i + 4 <= s.length() && s.subSequence(i, i + 3).toString().equals("[x]")) {
+                    s.setSpan(getCheckboxCheckedImageSpan(), i, i+3, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                } else if (i + 1 <= s.length() && s.subSequence(i, i + 1).toString().equals("*")) {
+                    s.setSpan(getBulletImageSpan(), i, i+1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                }
+            }
+        }
+        return s;
+    }
+
+    public void setMarkdown(String markdown) {
+        setText(convertToRichText(markdown));
+    }
+
+    public void showRichText() {
+        setMarkdown(getText().toString());
     }
 
 }
