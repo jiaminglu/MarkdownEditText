@@ -25,6 +25,7 @@ import android.widget.EditText;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -78,26 +79,28 @@ public class MarkdownEditText extends EditText {
                             getText().setSpan(new LeadingMarginSpan.Standard((int) getTextSize()), start + 1, oldEnd, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                         }
                     }
-                    int prevStart = start - 1;
-                    while (prevStart > 0 && s.charAt(prevStart - 1) != '\n')
-                        prevStart--;
-                    if (count > 0 && prevStart + 3 <= getText().length()) {
-                        String prevLinePrefix = s.subSequence(prevStart, prevStart + 3).toString();
-                        if (prevLinePrefix.startsWith("[ ]") || prevLinePrefix.startsWith("[x]")) {
-                            getText().insert(start + 1, "[ ] ");
-                            getText().setSpan(getCheckboxImageSpan(), start + 1, start + 4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    if (count > 0 && start != 0) {
+                        int prevStart = start - 1;
+                        while (prevStart > 0 && s.charAt(prevStart - 1) != '\n')
+                            prevStart--;
+                        if (prevStart + 3 <= getText().length()) {
+                            String prevLinePrefix = s.subSequence(prevStart, prevStart + 3).toString();
+                            if (prevLinePrefix.startsWith("[ ]") || prevLinePrefix.startsWith("[x]")) {
+                                getText().insert(start + 1, "[ ] ");
+                                getText().setSpan(getCheckboxImageSpan(), start + 1, start + 4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            }
                         }
-                    }
-                    if (count > 0 && prevStart + 1 <= getText().length()) {
-                        String prevLinePrefix = s.subSequence(prevStart, prevStart + 1).toString();
-                        if (prevLinePrefix.startsWith("*")) {
-                            getText().insert(start + 1, "* ");
-                            getText().setSpan(getBulletImageSpan(), start + 1, start + 2, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                        if (prevStart + 1 <= getText().length()) {
+                            String prevLinePrefix = s.subSequence(prevStart, prevStart + 1).toString();
+                            if (prevLinePrefix.startsWith("*")) {
+                                getText().insert(start + 1, "* ");
+                                getText().setSpan(getBulletImageSpan(), start + 1, start + 2, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            }
                         }
-                    }
-                    int numbering;
-                    if (count > 0 && (numbering = getNumberingAtLine(prevStart)) != 0) {
-                        getText().insert(start + 1, String.valueOf(numbering + 1) + ". ");
+                        int numbering;
+                        if ((numbering = getNumberingAtLine(prevStart)) != 0) {
+                            getText().insert(start + 1, String.valueOf(numbering + 1) + ". ");
+                        }
                     }
                 }
                 if (before > 0 && thisLineStartsWith(getText(), start, "[ ]")) {
@@ -297,7 +300,7 @@ public class MarkdownEditText extends EditText {
                 removeLinePrefixes(lineStart);
                 int prevLineStart = lineStart - 1;
                 while (prevLineStart > 0 && getText().charAt(prevLineStart - 1) != '\n')
-                    prevLineStart --;
+                    prevLineStart--;
                 int number = getNumberingAtLine(prevLineStart) + 1;
                 String numbering = String.valueOf(number) + ". ";
                 getText().insert(lineStart, numbering);
@@ -369,12 +372,29 @@ public class MarkdownEditText extends EditText {
 
         StringBuilder builder = new StringBuilder();
 
+        Stack<String> tagStack = new Stack<>();
         int start = 0;
-        for (SpanTag tag : tags) {
-            if (tag.position > start)
-                builder.append(getText().subSequence(start, tag.position));
-            builder.append(tag.tag);
-            start = tag.position;
+        for (int i = 0; i < tags.size(); i ++) {
+            if (tags.get(i).position > start)
+                builder.append(getText().subSequence(start, tags.get(i).position));
+            if (tags.get(i).tag.charAt(0) == '<') {
+                if (tags.get(i).tag.charAt(1) == '/') {
+                    int n = 0;
+                    while (!tags.get(i + n).tag.substring(2).equals(tagStack.peek().substring(1))) {
+                        n++;
+                    }
+                    if (n != 0) {
+                        SpanTag tmp = tags.get(i);
+                        tags.set(i, tags.get(i + n));
+                        tags.set(i + n, tmp);
+                    }
+                    tagStack.pop();
+                } else {
+                    tagStack.push(tags.get(i).tag);
+                }
+            }
+            builder.append(tags.get(i).tag);
+            start = tags.get(i).position;
         }
 
         if (start < length())
@@ -401,19 +421,60 @@ public class MarkdownEditText extends EditText {
         }
     }
 
+    public CharacterStyle getStyleSpan(String tag) {
+        if (tag.equals("em"))
+            return new ItalicSpan();
+        if (tag.equals("strong"))
+            return new BoldSpan();
+        if (tag.equals("del"))
+            return new StrikethroughSpan();
+        if (tag.equals("u"))
+            return new UnderlineSpan();
+        return null;
+    }
+
     public Spannable convertToRichText(CharSequence string) {
         StringBuffer output = new StringBuffer();
 
         Pattern tab = Pattern.compile("(?m)^(\\t*)(.*)$");
+        Pattern styleTag = Pattern.compile("<(/?)(em|strong|del|u)>");
         Matcher matcher = tab.matcher(string);
         ArrayList<SpanPosition> spans = new ArrayList<>();
         int charDiff = 0;
         while (matcher.find()) {
             int tabs = matcher.group(1).length();
+
+            StringBuffer paraOut = new StringBuffer();
+            String paragraph = matcher.group(2);
+            Stack<SpanTag> tagStack = new Stack<>();
+
+            int charDiffInParagraph = tabs;
+
+            Matcher tagMatcher = styleTag.matcher(paragraph);
+            while (tagMatcher.find()) {
+                if (tagMatcher.group(1).isEmpty()) {
+                    tagStack.push(new SpanTag(tagMatcher.start() - charDiff - charDiffInParagraph, tagMatcher.group(2)));
+                } else {
+                    while (!tagStack.empty()) {
+                        spans.add(new SpanPosition(tagStack.peek().position, tagMatcher.start() - charDiff - charDiffInParagraph, getStyleSpan(tagStack.peek().tag), Spannable.SPAN_INCLUSIVE_INCLUSIVE));
+                        if (tagStack.peek().tag.equals(tagMatcher.group(2))) {
+                            tagStack.pop();
+                            break;
+                        }
+                        tagStack.pop();
+                    }
+                }
+                charDiffInParagraph += tagMatcher.end() - tagMatcher.start();
+                tagMatcher.appendReplacement(paraOut, "");
+            }
+            tagMatcher.appendTail(paraOut);
+
+            paragraph = paraOut.toString();
+
             for (int i = 0; i < tabs; i++)
-                spans.add(new SpanPosition(matcher.start() - charDiff, matcher.end() - charDiff - tabs, new LeadingMarginSpan.Standard((int) getTextSize()), Spanned.SPAN_INCLUSIVE_INCLUSIVE));
-            charDiff += tabs;
-            matcher.appendReplacement(output, matcher.group(2));
+                spans.add(new SpanPosition(matcher.start() - charDiff, matcher.end() - charDiff - charDiffInParagraph, new LeadingMarginSpan.Standard((int) getTextSize()), Spanned.SPAN_INCLUSIVE_INCLUSIVE));
+            charDiff += charDiffInParagraph;
+            matcher.appendReplacement(output, paragraph);
         }
         matcher.appendTail(output);
 
