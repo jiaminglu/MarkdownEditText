@@ -9,7 +9,6 @@ import android.text.Editable;
 import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.Spanned;
-import android.text.SpannedString;
 import android.text.TextPaint;
 import android.text.TextWatcher;
 import android.text.method.LinkMovementMethod;
@@ -138,6 +137,19 @@ public class MarkdownEditText extends EditText {
                 getText().setSpan(new RemoveSpan(), st, en, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
             }
 
+            boolean prevWordIsNumber(int start) {
+                while (start > 0 && Character.isDigit(getText().charAt(start - 1)))
+                    start --;
+                return start == 0 || getText().charAt(start - 1) == '\n';
+            }
+
+            boolean prevWordIs(int start, String str) {
+                int i = str.length() - 1;
+                while (i >= 0 && start > 0 && getText().charAt(start - 1) == str.charAt(i--))
+                    start --;
+                return start == 0 || getText().charAt(start - 1) == '\n';
+            }
+
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 if (viewSource)
@@ -145,11 +157,12 @@ public class MarkdownEditText extends EditText {
                 int numbering;
                 while (count >= 0 && start <= s.length()) {
                     if (start + 1 < getText().length() && getText().charAt(start) != '\n'
-                            && (! (getText().charAt(start) == '*' && (start == 0 || getText().charAt(start - 1) == '\n')))
-                            && (! (getText().charAt(start) == ']' && start >= 2 && (getText().charAt(start - 1) == ' ' || getText().charAt(start - 1) == 'x')
-                                   && getText().charAt(start - 2) == '[' && (start == 2 || getText().charAt(start - 2) == '\n')))
                             && getText().charAt(start + 1) == ' '
-                            && (start + 2 == length() || getText().charAt(start + 2) == '\n')) {
+                            && (start + 2 == length() || getText().charAt(start + 2) == '\n')
+                            && (! prevWordIs(start + 1, "*"))
+                            && (! prevWordIs(start + 1, "[ ]"))
+                            && (! prevWordIs(start + 1, "[x]"))
+                            && (! (getText().charAt(start) == '.' && prevWordIsNumber(start)))) {
                         remove(start + 1, start + 2);
                         count--;
                     }
