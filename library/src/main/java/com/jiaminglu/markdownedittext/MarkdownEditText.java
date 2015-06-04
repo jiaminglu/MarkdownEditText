@@ -680,12 +680,11 @@ public class MarkdownEditText extends EditText {
         getText().setSpan(new ClickableSpan() {
             @Override
             public void onClick(View widget) {
-                if (checked)
-                    getText().insert(start, getCheckboxSpannable());
-                else
-                    getText().insert(start, getCheckboxCheckedSpannable());
-                getText().delete(start + 4, start + 8);
                 getText().removeSpan(this);
+                if (checked)
+                    getText().replace(start, start + 4, getCheckboxSpannable());
+                else
+                    getText().replace(start, start + 4, getCheckboxCheckedSpannable());
                 setupCheckboxClickable(start, end, !checked);
             }
 
