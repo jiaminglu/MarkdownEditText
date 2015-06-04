@@ -196,11 +196,11 @@ public class MarkdownEditText extends EditText {
                             }
                         }
                         if (start + 4 <= getText().length() && getText().subSequence(start + 1, start + 4).toString().equals("[ ]")) {
-                            getText().setSpan(getCheckboxImageSpan(), start + 1, start + 4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            getText().setSpan(getCheckboxImageSpan(), start + 1, start + 4, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
                         } else if (start + 4 <= getText().length() && getText().subSequence(start + 1, start + 4).toString().equals("[x]")) {
-                            getText().setSpan(getCheckboxCheckedImageSpan(), start + 1, start + 4, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            getText().setSpan(getCheckboxCheckedImageSpan(), start + 1, start + 4, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
                         } else if (start + 2 <= getText().length() && getText().subSequence(start + 1, start + 2).toString().equals("*")) {
-                            getText().setSpan(getBulletImageSpan(), start + 1, start + 2, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                            getText().setSpan(getBulletImageSpan(), start + 1, start + 2, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
                         } else if ((numbering = getNumberingAtLine(start + 1)) != 0) {
                         } else if (count > 0 && start != 0) {
                             int prevStart = start - 1;
@@ -253,19 +253,19 @@ public class MarkdownEditText extends EditText {
 
     private Spannable getBulletSpannable() {
         SpannableString spannableString = new SpannableString("* ");
-        spannableString.setSpan(getBulletImageSpan(), 0, 1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        spannableString.setSpan(getBulletImageSpan(), 0, 1, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
         return spannableString;
     }
 
     private Spannable getCheckboxSpannable() {
         SpannableString spannableString = new SpannableString("[ ] ");
-        spannableString.setSpan(getCheckboxImageSpan(), 0, 3, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        spannableString.setSpan(getCheckboxImageSpan(), 0, 3, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
         return spannableString;
     }
 
     private Spannable getCheckboxCheckedSpannable() {
         SpannableString spannableString = new SpannableString("[x] ");
-        spannableString.setSpan(getCheckboxCheckedImageSpan(), 0, 3, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        spannableString.setSpan(getCheckboxCheckedImageSpan(), 0, 3, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
         return spannableString;
     }
 
@@ -661,11 +661,11 @@ public class MarkdownEditText extends EditText {
         for (int i = 0; i < s.length(); i++) {
             if (i == 0 || s.charAt(i - 1) == '\n') {
                 if (i + 3 <= s.length() && s.subSequence(i, i + 3).toString().equals("[ ]")) {
-                    s.setSpan(getCheckboxImageSpan(), i, i+3, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    s.setSpan(getCheckboxImageSpan(), i, i+3, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
                 } else if (i + 3 <= s.length() && s.subSequence(i, i + 3).toString().equals("[x]")) {
-                    s.setSpan(getCheckboxCheckedImageSpan(), i, i+3, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    s.setSpan(getCheckboxCheckedImageSpan(), i, i+3, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
                 } else if (i + 1 <= s.length() && s.subSequence(i, i + 1).toString().equals("*")) {
-                    s.setSpan(getBulletImageSpan(), i, i+1, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                    s.setSpan(getBulletImageSpan(), i, i+1, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
                 }
             }
         }
@@ -692,7 +692,7 @@ public class MarkdownEditText extends EditText {
             @Override
             public void updateDrawState(TextPaint ds) {
             }
-        }, start, end, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        }, start, end, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
     }
 
     public void enterViewMode() {
