@@ -59,11 +59,11 @@ public class MainActivity extends ActionBarActivity {
                 editor.toggleViewSource();
                 break;
             case R.id.toggle_edit:
-                if (((Button) v).getText().toString().equals("VIEW")) {
-                    ((Button) v).setText("EDIT");
+                if (((Button) v).getText().toString().equals("V")) {
+                    ((Button) v).setText("E");
                     editor.enterViewMode();
                 } else {
-                    ((Button) v).setText("VIEW");
+                    ((Button) v).setText("V");
                     editor.exitViewMode();
                 }
         }

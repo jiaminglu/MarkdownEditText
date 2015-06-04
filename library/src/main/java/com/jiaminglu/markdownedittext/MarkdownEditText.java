@@ -696,7 +696,10 @@ public class MarkdownEditText extends EditText {
     }
 
     public void enterViewMode() {
-        viewSource = false;
+        if (viewSource) {
+            viewSource = false;
+            setMarkdown(getText().toString());
+        }
         setFocusable(false);
         setLinksClickable(true);
         setMovementMethod(LinkMovementMethod.getInstance());
@@ -711,7 +714,10 @@ public class MarkdownEditText extends EditText {
     }
 
     public void exitViewMode() {
-        viewSource = false;
+        if (viewSource) {
+            viewSource = false;
+            setMarkdown(getText().toString());
+        }
         for (ClickableSpan span : getText().getSpans(0, length(), ClickableSpan.class)) {
             getText().removeSpan(span);
         }

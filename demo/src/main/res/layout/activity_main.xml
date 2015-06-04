@@ -70,7 +70,7 @@
             style="@style/FormatButton" />
         <Button
             android:id="@+id/toggle_edit"
-            android:text="VIEW"
+            android:text="V"
             android:src="@drawable/ic_format_list_numbers_black_24dp"
             style="@style/FormatButton" />
     </LinearLayout>
