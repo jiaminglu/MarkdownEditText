@@ -139,14 +139,14 @@ public class MarkdownEditText extends EditText {
 
             boolean prevWordIsNumber(int start) {
                 while (start > 0 && Character.isDigit(getText().charAt(start - 1)))
-                    start --;
+                    start--;
                 return start == 0 || getText().charAt(start - 1) == '\n';
             }
 
             boolean prevWordIs(int start, String str) {
                 int i = str.length() - 1;
                 while (i >= 0 && start > 0 && getText().charAt(start - 1) == str.charAt(i--))
-                    start --;
+                    start--;
                 return start == 0 || getText().charAt(start - 1) == '\n';
             }
 
@@ -159,10 +159,10 @@ public class MarkdownEditText extends EditText {
                     if (start + 1 < getText().length() && getText().charAt(start) != '\n'
                             && getText().charAt(start + 1) == ' '
                             && (start + 2 == length() || getText().charAt(start + 2) == '\n')
-                            && (! prevWordIs(start + 1, "*"))
-                            && (! prevWordIs(start + 1, "[ ]"))
-                            && (! prevWordIs(start + 1, "[x]"))
-                            && (! (getText().charAt(start) == '.' && prevWordIsNumber(start)))) {
+                            && (!prevWordIs(start + 1, "*"))
+                            && (!prevWordIs(start + 1, "[ ]"))
+                            && (!prevWordIs(start + 1, "[x]"))
+                            && (!(getText().charAt(start) == '.' && prevWordIsNumber(start)))) {
                         remove(start + 1, start + 2);
                         count--;
                     }
@@ -272,7 +272,7 @@ public class MarkdownEditText extends EditText {
     private void toggleStyleSpan(CharacterStyle newSpan, int start, int end) {
         if (start < 0 || end > getText().length())
             return;
-        CharacterStyle[] spans = getText().getSpans(start-1, end+1, newSpan.getClass());
+        CharacterStyle[] spans = getText().getSpans(start - 1, end + 1, newSpan.getClass());
         if (spans.length == 1)  {
             int oldstart = getText().getSpanStart(spans[0]);
             int oldend = getText().getSpanEnd(spans[0]);
@@ -354,6 +354,9 @@ public class MarkdownEditText extends EditText {
                 while (end < getText().length() && ((end == lineStart && getText().charAt(lineStart) != '\n') || getText().charAt(end) != '\n'))
                     end ++;
                 getText().setSpan(new LeadingMarginSpan.Standard((int) getTextSize()), lineStart, end, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                if ((getNumberingAtLine(lineStart)) != 0) {
+                    setLineNumbered();
+                }
             }
         });
     }
@@ -368,6 +371,9 @@ public class MarkdownEditText extends EditText {
                 LeadingMarginSpan[] spans = getText().getSpans(lineStart, end, LeadingMarginSpan.class);
                 if (spans.length > 0)
                     getText().removeSpan(spans[0]);
+                if ((getNumberingAtLine(lineStart)) != 0) {
+                    setLineNumbered();
+                }
             }
         });
     }
@@ -453,9 +459,22 @@ public class MarkdownEditText extends EditText {
             public void operateOn(int lineStart) {
                 removeLinePrefixes(lineStart);
                 int prevLineStart = lineStart - 1;
-                while (prevLineStart > 0 && getText().charAt(prevLineStart - 1) != '\n')
+                int indentLevel = getText().getSpans(lineStart, lineStart, LeadingMarginSpan.class).length;
+                int number = 1;
+                while (true) {
+                    while (prevLineStart > 0 && getText().charAt(prevLineStart - 1) != '\n')
+                        prevLineStart--;
+                    if (prevLineStart < 0)
+                        break;
+                    int prevIndentLevel = getText().getSpans(prevLineStart, prevLineStart, LeadingMarginSpan.class).length;
+                    if (prevIndentLevel < indentLevel)
+                        break;
+                    if (prevIndentLevel == indentLevel) {
+                        number += getNumberingAtLine(prevLineStart);
+                        break;
+                    }
                     prevLineStart--;
-                int number = getNumberingAtLine(prevLineStart) + 1;
+                }
                 String numbering = String.valueOf(number) + ". ";
                 getText().insert(lineStart, numbering);
             }
