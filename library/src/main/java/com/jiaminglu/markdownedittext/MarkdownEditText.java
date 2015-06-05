@@ -717,6 +717,7 @@ public class MarkdownEditText extends EditText {
                     getText().replace(start, start + 4, getCheckboxSpannable());
                 else
                     getText().replace(start, start + 4, getCheckboxCheckedSpannable());
+                clearFocus();
                 setupCheckboxClickable(start, end, !checked);
             }
 
