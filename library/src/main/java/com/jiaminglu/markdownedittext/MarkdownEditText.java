@@ -659,7 +659,16 @@ public class MarkdownEditText extends EditText {
         if (start < length())
             builder.append(getText().subSequence(start, length()));
 
-        return builder;
+        StringBuffer result = new StringBuffer();
+
+        Pattern emptyLines = Pattern.compile(" *\\n");
+        Matcher matcher = emptyLines.matcher(builder);
+        while (matcher.find()) {
+            matcher.appendReplacement(result, "\n");
+        }
+        matcher.appendTail(result);
+
+        return result;
     }
 
     public void setMarkdown(CharSequence markdown) {
