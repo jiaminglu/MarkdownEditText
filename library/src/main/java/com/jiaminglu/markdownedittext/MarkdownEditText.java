@@ -486,7 +486,7 @@ public class MarkdownEditText extends EditText {
 
     private LinePrefixImageSpan getCheckboxCheckedImageSpan() {
         LinePrefixImageSpan span = new LinePrefixImageSpan(checkboxCheckedRes);
-        span.setSpacing((int)getTextSize() / 4);
+        span.setSpacing((int) getTextSize() / 4);
         return span;
     }
 
@@ -573,7 +573,7 @@ public class MarkdownEditText extends EditText {
         }
     }
 
-    public String convertToMarkdown() {
+    public CharSequence getMarkdown() {
         Object[] spans = getText().getSpans(0, length(), Object.class);
 
         ArrayList<SpanTag> tags = new ArrayList<>(spans.length * 2);
@@ -637,7 +637,11 @@ public class MarkdownEditText extends EditText {
         if (start < length())
             builder.append(getText().subSequence(start, length()));
 
-        return builder.toString();
+        return builder;
+    }
+
+    public void setMarkdown(CharSequence markdown) {
+        setText(convertToRichText(markdown));
     }
 
     private class SpanPosition {
@@ -666,7 +670,7 @@ public class MarkdownEditText extends EditText {
         return null;
     }
 
-    public Spannable convertToRichText(CharSequence string) {
+    private Spannable convertToRichText(CharSequence string) {
         StringBuffer output = new StringBuffer();
 
         Pattern tab = Pattern.compile("(?m)^(\\t*)(.*)$");
@@ -734,10 +738,6 @@ public class MarkdownEditText extends EditText {
         return s;
     }
 
-    public void setMarkdown(String markdown) {
-        setText(convertToRichText(markdown));
-    }
-
     private abstract class LinkSpan extends ClickableSpan {
         @Override
         public void updateDrawState(@NonNull TextPaint ds) {
@@ -795,11 +795,11 @@ public class MarkdownEditText extends EditText {
             viewSource = false;
             setFocusable(true);
             setFocusableInTouchMode(true);
-            setMarkdown(getText().toString());
+            setMarkdown(getText());
         } else {
             viewSource = true;
             setFocusable(false);
-            setText(convertToMarkdown());
+            setText(getMarkdown());
         }
     }
 
