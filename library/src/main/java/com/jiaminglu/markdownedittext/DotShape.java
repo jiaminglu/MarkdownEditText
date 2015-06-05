@@ -13,7 +13,7 @@ public class DotShape extends Shape {
         this.radius = radius;
     }
 
-    float radius;
+    private float radius;
 
     public DotShape(float radius) {
         this.radius = radius;

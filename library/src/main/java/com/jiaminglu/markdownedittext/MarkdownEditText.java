@@ -6,6 +6,7 @@ import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.ShapeDrawable;
 import android.os.Build;
+import android.support.annotation.NonNull;
 import android.text.Editable;
 import android.text.Spannable;
 import android.text.SpannableString;
@@ -15,7 +16,6 @@ import android.text.TextWatcher;
 import android.text.method.LinkMovementMethod;
 import android.text.style.CharacterStyle;
 import android.text.style.ClickableSpan;
-import android.text.style.DynamicDrawableSpan;
 import android.text.style.LeadingMarginSpan;
 import android.text.style.StrikethroughSpan;
 import android.text.style.UnderlineSpan;
@@ -461,11 +461,11 @@ public class MarkdownEditText extends EditText {
 
     private class LinePrefixImageSpan extends CenteredImageSpan {
         public LinePrefixImageSpan(Drawable b) {
-            super(b, DynamicDrawableSpan.ALIGN_BASELINE);
+            super(b);
         }
 
         public LinePrefixImageSpan(int resourceId) {
-            super(getContext(), resourceId, DynamicDrawableSpan.ALIGN_BASELINE);
+            super(getContext(), resourceId);
         }
     }
 
@@ -740,7 +740,7 @@ public class MarkdownEditText extends EditText {
 
     private abstract class LinkSpan extends ClickableSpan {
         @Override
-        public void updateDrawState(TextPaint ds) {
+        public void updateDrawState(@NonNull TextPaint ds) {
         }
     }
 

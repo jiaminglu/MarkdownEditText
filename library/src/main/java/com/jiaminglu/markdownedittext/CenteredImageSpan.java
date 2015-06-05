@@ -4,6 +4,7 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.drawable.Drawable;
+import android.support.annotation.NonNull;
 import android.text.style.ImageSpan;
 
 import java.lang.ref.WeakReference;
@@ -18,19 +19,11 @@ public class CenteredImageSpan extends ImageSpan {
     private int extraSpace = 0;
 
     public CenteredImageSpan(Drawable b) {
-        super(b);
-    }
-
-    public CenteredImageSpan(Drawable b, int verticalAlignment) {
-        super(b, verticalAlignment);
-    }
-
-    public CenteredImageSpan(Context context, int resourceId, int verticalAlignment) {
-        super(context, resourceId, verticalAlignment);
+        super(b, android.text.style.DynamicDrawableSpan.ALIGN_BASELINE);
     }
 
     public CenteredImageSpan(Context context, int resourceId) {
-        super(context, resourceId);
+        super(context, resourceId, android.text.style.DynamicDrawableSpan.ALIGN_BASELINE);
     }
 
     @Override
@@ -40,17 +33,16 @@ public class CenteredImageSpan extends ImageSpan {
         return super.getSize(paint, text, start, end, fm) + spacing;
     }
 
-    int spacing;
+    private int spacing;
 
-    public CenteredImageSpan setSpacing(int spacing) {
+    public void setSpacing(int spacing) {
         this.spacing = spacing;
-        return this;
     }
 
     @Override
-    public void draw(Canvas canvas, CharSequence text,
+    public void draw(@NonNull Canvas canvas, CharSequence text,
                      int start, int end, float x,
-                     int top, int y, int bottom, Paint paint) {
+                     int top, int y, int bottom, @NonNull Paint paint) {
         Drawable b = getCachedDrawable();
         canvas.save();
 
@@ -75,7 +67,7 @@ public class CenteredImageSpan extends ImageSpan {
 
         if (d == null) {
             d = getDrawable();
-            mDrawableRef = new WeakReference<Drawable>(d);
+            mDrawableRef = new WeakReference<>(d);
         }
 
         return d;
