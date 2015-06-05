@@ -762,6 +762,16 @@ public class MarkdownEditText extends EditText {
         }
     }
 
+    public interface CheckboxClickListener {
+        void onCheckboxClicked(int checkboxOffset, boolean checked);
+    }
+
+    private CheckboxClickListener checkboxClickListener;
+
+    public void setCheckboxClickListener(CheckboxClickListener checkboxClickListener) {
+        this.checkboxClickListener = checkboxClickListener;
+    }
+
     private void setupCheckboxClickable(final int start, final int end, final boolean checked) {
         getText().setSpan(new LinkSpan() {
             @Override
@@ -773,6 +783,8 @@ public class MarkdownEditText extends EditText {
                     getText().replace(start, start + 4, getCheckboxCheckedSpannable());
                 clearFocus();
                 setupCheckboxClickable(start, end, !checked);
+                if (checkboxClickListener != null)
+                    checkboxClickListener.onCheckboxClicked(start, !checked);
             }
         }, start, end, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
     }
