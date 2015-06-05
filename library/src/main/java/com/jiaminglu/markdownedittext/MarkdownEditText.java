@@ -2,6 +2,7 @@ package com.jiaminglu.markdownedittext;
 
 import android.annotation.TargetApi;
 import android.content.Context;
+import android.content.res.TypedArray;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.ShapeDrawable;
@@ -12,6 +13,7 @@ import android.text.Spannable;
 import android.text.SpannableString;
 import android.text.Spanned;
 import android.text.TextPaint;
+import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.text.method.LinkMovementMethod;
 import android.text.style.CharacterStyle;
@@ -41,18 +43,34 @@ public class MarkdownEditText extends EditText {
 
     public MarkdownEditText(Context context, AttributeSet attrs) {
         super(context, attrs);
+        applyXmlAttrs(attrs, 0, 0);
         init();
     }
 
     public MarkdownEditText(Context context, AttributeSet attrs, int defStyleAttr) {
         super(context, attrs, defStyleAttr);
+        applyXmlAttrs(attrs, defStyleAttr, 0);
         init();
     }
 
     @TargetApi(Build.VERSION_CODES.LOLLIPOP)
     public MarkdownEditText(Context context, AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         super(context, attrs, defStyleAttr, defStyleRes);
+        applyXmlAttrs(attrs, defStyleAttr, defStyleRes);
         init();
+    }
+
+    private void applyXmlAttrs(AttributeSet attrs, int defStyleAttr, int defStyleRes) {
+        TypedArray a = getContext().obtainStyledAttributes(attrs, R.styleable.MarkdownEditText, defStyleAttr, defStyleRes);
+        setCharacterStyleEnabled(a.getBoolean(R.styleable.MarkdownEditText_characterStyleEnabled, false));
+        setCheckboxRes(a.getInt(R.styleable.MarkdownEditText_checkboxDrawable, R.drawable.ic_checkbox_blank_outline_black_18dp));
+        setCheckboxCheckedRes(a.getInt(R.styleable.MarkdownEditText_checkboxCheckedDrawable, R.drawable.ic_checkbox_marked_black_18dp));
+        String markdown = a.getString(R.styleable.MarkdownEditText_markdown);
+        if (!TextUtils.isEmpty(markdown))
+            setMarkdown(markdown);
+        if (a.getBoolean(R.styleable.MarkdownEditText_viewMode, false))
+            enterViewMode();
+        a.recycle();
     }
 
     @Override

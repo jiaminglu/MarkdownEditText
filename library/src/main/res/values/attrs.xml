@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="MarkdownEditText">
+        <attr name="characterStyleEnabled" format="boolean"/>
+        <attr name="checkboxDrawable" format="integer"/>
+        <attr name="checkboxCheckedDrawable" format="integer"/>
+        <attr name="markdown" format="string"/>
+        <attr name="viewMode" format="boolean"/>
+    </declare-styleable>
+</resources>

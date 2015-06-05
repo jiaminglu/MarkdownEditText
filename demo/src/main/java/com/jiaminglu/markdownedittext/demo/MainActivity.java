@@ -19,8 +19,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         editor = (MarkdownEditText) findViewById(R.id.editor);
-        editor.setCheckboxRes(R.drawable.ic_checkbox_blank_outline_black_18dp);
-        editor.setCheckboxCheckedRes(R.drawable.ic_checkbox_marked_black_18dp);
     }
 
     public void changeFormat(View v) {
