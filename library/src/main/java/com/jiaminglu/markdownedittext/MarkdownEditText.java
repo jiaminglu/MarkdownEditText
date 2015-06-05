@@ -59,12 +59,29 @@ public class MarkdownEditText extends EditText {
     public void onSelectionChanged(int selStart, int selEnd) {
         boolean changed = false;
         if (selStart > 2 && selStart <= length() && getText().charAt(selStart - 2) == '\n' && getText().charAt(selStart - 1) == ' ') {
-            selStart = selStart - 1;
+            selStart --;
             changed = true;
+        } else if (selStart > 0 && selStart < length() && getText().charAt(selStart) == ' ') {
+            if (prevWordIs(selStart, "*")
+                    || prevWordIs(selStart, "[x]")
+                    || prevWordIs(selStart, "[ ]")
+                    || prevWordIsNumber(selStart) != -1) {
+                selStart --;
+                changed = true;
+            }
+
         }
         if (selEnd > 2 && selEnd <= length() && getText().charAt(selEnd - 2) == '\n' && getText().charAt(selEnd - 1) == ' ') {
-            selEnd = selEnd - 1;
+            selEnd --;
             changed = true;
+        } else if (selEnd > 0 && selEnd < length() && getText().charAt(selEnd) == ' ') {
+            if (prevWordIs(selEnd, "*")
+                    || prevWordIs(selEnd, "[x]")
+                    || prevWordIs(selEnd, "[ ]")
+                    || prevWordIsNumber(selEnd) != -1) {
+                selEnd --;
+                changed = true;
+            }
         }
         if (!changed)
             super.onSelectionChanged(selStart, selEnd);
@@ -91,25 +108,51 @@ public class MarkdownEditText extends EditText {
         }
     }
 
+    private int prevWordIsNumber(int start) {
+        if (start == 0 || getText().charAt(start - 1) != '.')
+            return -1;
+        start--;
+        while (start > 0 && Character.isDigit(getText().charAt(start - 1)))
+            start--;
+        if (getText().charAt(start) != '.' && (start == 0 || getText().charAt(start - 1) == '\n'))
+            return start;
+        return -1;
+    }
+
+    private boolean prevWordIs(int start, String str) {
+        int i = str.length() - 1;
+        while (i >= 0 && start > 0) {
+            if (getText().charAt(start - 1) == str.charAt(i--))
+                start--;
+            else
+                return false;
+        }
+        return start == 0 || getText().charAt(start - 1) == '\n';
+    }
+
     private void init() {
         addTextChangedListener(new TextWatcher() {
             @Override
-            public void beforeTextChanged(CharSequence s, int start, int count, int after) {
+            public void beforeTextChanged(CharSequence s, int ostart, int count, int after) {
                 if (viewSource)
                     return;
+                int start = ostart;
                 while (count > 0) {
                     if (s.charAt(start) == '\n' && start + 1 <= getText().length()) {
                         for (LeadingMarginSpan span : getText().getSpans(start + 1, start + count, LeadingMarginSpan.class))
                             getText().removeSpan(span);
                         break;
                     }
+                    int numbering;
                     if (s.charAt(start) == ' ') {
-                        if (thisLineStartsWith(getText(), start, "[ ]")) {
-                            clearLinePrefix(start - 3, start);
-                        } else if (thisLineStartsWith(getText(), start, "[x]")) {
-                            clearLinePrefix(start - 3, start);
-                        } else if (thisLineStartsWith(getText(), start, "*")) {
-                            clearLinePrefix(start - 1, start);
+                        if (prevWordIs(start, "[ ]")) {
+                            clearLinePrefix(start - 3, ostart);
+                        } else if (prevWordIs(start, "[x]")) {
+                            clearLinePrefix(start - 3, ostart);
+                        } else if (prevWordIs(start, "*")) {
+                            clearLinePrefix(start - 1, ostart);
+                        } else if ((numbering = prevWordIsNumber(start)) != -1) {
+                            clearLinePrefix(numbering, ostart);
                         }
                     }
                     count--;
@@ -117,13 +160,10 @@ public class MarkdownEditText extends EditText {
                 }
             }
 
-            private boolean thisLineStartsWith(Spannable spannable, int position, String string) {
-                int start = position - string.length();
-                return ((start > 0 && spannable.charAt(start - 1) == '\n') || start == 0) && spannable.subSequence(start, position).toString().equals(string);
-            }
-
             private void clearLinePrefix(int st, int en) {
-                for (ImageSpan span : getText().getSpans(st, en, ImageSpan.class)) {
+                if (st >= en)
+                    return;
+                for (ImageSpan span : getText().getSpans(st, st, ImageSpan.class)) {
                     getText().removeSpan(span);
                 }
                 getText().setSpan(new RemoveSpan(), st, en, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
@@ -137,24 +177,13 @@ public class MarkdownEditText extends EditText {
                 getText().setSpan(new RemoveSpan(), st, en, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
             }
 
-            boolean prevWordIsNumber(int start) {
-                while (start > 0 && Character.isDigit(getText().charAt(start - 1)))
-                    start--;
-                return start == 0 || getText().charAt(start - 1) == '\n';
-            }
-
-            boolean prevWordIs(int start, String str) {
-                int i = str.length() - 1;
-                while (i >= 0 && start > 0 && getText().charAt(start - 1) == str.charAt(i--))
-                    start--;
-                return start == 0 || getText().charAt(start - 1) == '\n';
-            }
-
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 if (viewSource)
                     return;
                 int numbering;
+                if (start > 0 && getText().charAt(start - 1) == '\n' && (start == length() || getText().charAt(start) == '\n'))
+                    insertBefore(start, new SpannableString(" "));
                 while (count >= 0 && start <= s.length()) {
                     if (start + 1 < getText().length() && getText().charAt(start) != '\n'
                             && getText().charAt(start + 1) == ' '
@@ -162,7 +191,7 @@ public class MarkdownEditText extends EditText {
                             && (!prevWordIs(start + 1, "*"))
                             && (!prevWordIs(start + 1, "[ ]"))
                             && (!prevWordIs(start + 1, "[x]"))
-                            && (!(getText().charAt(start) == '.' && prevWordIsNumber(start)))) {
+                            && (prevWordIsNumber(start+1) == -1)) {
                         remove(start + 1, start + 2);
                         count--;
                     }
@@ -237,15 +266,14 @@ public class MarkdownEditText extends EditText {
                     int start = s.getSpanStart(span);
                     int end = s.getSpanEnd(span);
                     s.removeSpan(span);
-                    if (start > 0 && end <= s.length())
+                    if (start >= 0 && end <= s.length())
                         s.delete(start, end);
                 }
                 for (InsertSpan span : s.getSpans(0, s.length(), InsertSpan.class)) {
                     int start = s.getSpanStart(span);
                     s.removeSpan(span);
-                    if (start >= 0 && start <= s.length()) {
+                    if (start >= 0 && start <= s.length())
                         s.insert(start, span.toBeInserted);
-                    }
                 }
             }
         });
@@ -448,7 +476,11 @@ public class MarkdownEditText extends EditText {
             numEnd ++;
         }
         if (numEnd >= 0 && numEnd < getText().length() && getText().charAt(numEnd) == '.') {
-            return Integer.parseInt(getText().subSequence(lineStart, numEnd).toString());
+            try {
+                return Integer.parseInt(getText().subSequence(lineStart, numEnd).toString());
+            } catch (NumberFormatException e) {
+                return 0;
+            }
         }
         return 0;
     }
