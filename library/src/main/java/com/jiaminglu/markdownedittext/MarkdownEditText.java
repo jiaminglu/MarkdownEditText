@@ -152,8 +152,9 @@ public class MarkdownEditText extends EditText {
         return start == 0 || getText().charAt(start - 1) == '\n';
     }
 
+    TextWatcher watcher;
     private void init() {
-        addTextChangedListener(new TextWatcher() {
+        addTextChangedListener(watcher = new TextWatcher() {
             @Override
             public void beforeTextChanged(CharSequence s, int ostart, int count, int after) {
                 if (viewSource)
@@ -672,7 +673,9 @@ public class MarkdownEditText extends EditText {
     }
 
     public void setMarkdown(CharSequence markdown) {
+        removeTextChangedListener(watcher);
         setText(convertToRichText(markdown));
+        addTextChangedListener(watcher);
     }
 
     private class SpanPosition {
@@ -703,7 +706,7 @@ public class MarkdownEditText extends EditText {
 
     private Spannable convertToRichText(CharSequence string) {
         StringBuffer result = new StringBuffer();
-        Pattern addLeadingSpace = Pattern.compile("(\\[(x| ) ]|\\*|\\d+.)(?! )");
+        Pattern addLeadingSpace = Pattern.compile("\\n\\t*(\\[(x| ) ]|\\*|\\d+.)(?! )");
         Matcher addSpaceMatcher = addLeadingSpace.matcher(string);
         while (addSpaceMatcher.find()) {
             addSpaceMatcher.appendReplacement(result, addSpaceMatcher.group());
@@ -750,10 +753,14 @@ public class MarkdownEditText extends EditText {
                 paragraph = paraOut.toString();
             }
 
-            if (!paragraph.isEmpty()) {
-                for (int i = 0; i < tabs; i++)
-                    spans.add(new SpanPosition(matcher.start() - charDiff, matcher.end() - charDiff - charDiffInParagraph, new TabSpan(), Spanned.SPAN_INCLUSIVE_INCLUSIVE));
+            if (paragraph.isEmpty()) {
+                paragraph = " ";
+                charDiffInParagraph --;
             }
+
+            for (int i = 0; i < tabs; i++)
+                spans.add(new SpanPosition(matcher.start() - charDiff, matcher.end() - charDiff - charDiffInParagraph, new TabSpan(), Spanned.SPAN_INCLUSIVE_INCLUSIVE));
+
             charDiff += charDiffInParagraph;
             matcher.appendReplacement(output, paragraph);
         }
