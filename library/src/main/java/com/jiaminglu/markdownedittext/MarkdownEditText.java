@@ -702,11 +702,20 @@ public class MarkdownEditText extends EditText {
     }
 
     private Spannable convertToRichText(CharSequence string) {
+        StringBuffer result = new StringBuffer();
+        Pattern addLeadingSpace = Pattern.compile("(\\[(x| ) ]|\\*|\\d+.)(?! )");
+        Matcher addSpaceMatcher = addLeadingSpace.matcher(string);
+        while (addSpaceMatcher.find()) {
+            addSpaceMatcher.appendReplacement(result, addSpaceMatcher.group());
+            result.append(' ');
+        }
+        addSpaceMatcher.appendTail(result);
+
         StringBuffer output = new StringBuffer();
 
         Pattern tab = Pattern.compile("(?m)^(\\t*)(.*)$");
         Pattern styleTag = Pattern.compile("<(/?)(em|strong|del|u)>");
-        Matcher matcher = tab.matcher(string);
+        Matcher matcher = tab.matcher(result);
         ArrayList<SpanPosition> spans = new ArrayList<>();
         int charDiff = 0;
         while (matcher.find()) {
