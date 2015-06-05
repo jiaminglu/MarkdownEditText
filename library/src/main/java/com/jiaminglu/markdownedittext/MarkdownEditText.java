@@ -82,8 +82,10 @@ public class MarkdownEditText extends EditText {
         } else if (selStart > 0 && selStart < length() && getText().charAt(selStart) == ' ') {
             if (prevWordIs(selStart, "*")
                     || prevWordIs(selStart, "[x]")
-                    || prevWordIs(selStart, "[ ]")
-                    || prevWordIsNumber(selStart) != -1) {
+                    || prevWordIs(selStart, "[ ]")) {
+                selStart ++;
+                changed = true;
+            } else if (prevWordIsNumber(selStart) != -1) {
                 selStart --;
                 changed = true;
             }
@@ -95,8 +97,10 @@ public class MarkdownEditText extends EditText {
         } else if (selEnd > 0 && selEnd < length() && getText().charAt(selEnd) == ' ') {
             if (prevWordIs(selEnd, "*")
                     || prevWordIs(selEnd, "[x]")
-                    || prevWordIs(selEnd, "[ ]")
-                    || prevWordIsNumber(selEnd) != -1) {
+                    || prevWordIs(selEnd, "[ ]")) {
+                selEnd ++;
+                changed = true;
+            } else if (prevWordIsNumber(selEnd) != -1) {
                 selEnd --;
                 changed = true;
             }
