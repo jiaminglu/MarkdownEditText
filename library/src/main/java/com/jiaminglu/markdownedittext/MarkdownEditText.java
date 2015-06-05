@@ -3,6 +3,7 @@ package com.jiaminglu.markdownedittext;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.graphics.Color;
+import android.graphics.drawable.Drawable;
 import android.graphics.drawable.ShapeDrawable;
 import android.os.Build;
 import android.text.Editable;
@@ -15,7 +16,6 @@ import android.text.method.LinkMovementMethod;
 import android.text.style.CharacterStyle;
 import android.text.style.ClickableSpan;
 import android.text.style.DynamicDrawableSpan;
-import android.text.style.ImageSpan;
 import android.text.style.LeadingMarginSpan;
 import android.text.style.StrikethroughSpan;
 import android.text.style.UnderlineSpan;
@@ -89,18 +89,18 @@ public class MarkdownEditText extends EditText {
             setSelection(selStart, selEnd);
     }
 
-    boolean viewSource = false;
+    private boolean viewSource = false;
 
     public void setCharacterStyleEnabled(boolean enableCharacterStyle) {
         this.enableCharacterStyle = enableCharacterStyle;
     }
 
-    boolean enableCharacterStyle = false;
+    private boolean enableCharacterStyle = false;
 
-    class RemoveSpan {
+    private class RemoveSpan {
     }
 
-    class InsertSpan {
+    private class InsertSpan {
         Spannable toBeInserted;
 
         public InsertSpan(Spannable toBeInserted) {
@@ -139,7 +139,7 @@ public class MarkdownEditText extends EditText {
                 int start = ostart;
                 while (count > 0) {
                     if (s.charAt(start) == '\n' && start + 1 <= getText().length()) {
-                        for (LeadingMarginSpan span : getText().getSpans(start + 1, start + count, LeadingMarginSpan.class))
+                        for (TabSpan span : getText().getSpans(start + 1, start + count, TabSpan.class))
                             getText().removeSpan(span);
                         break;
                     }
@@ -163,7 +163,7 @@ public class MarkdownEditText extends EditText {
             private void clearLinePrefix(int st, int en) {
                 if (st >= en)
                     return;
-                for (ImageSpan span : getText().getSpans(st, st, ImageSpan.class)) {
+                for (LinePrefixImageSpan span : getText().getSpans(st, st, LinePrefixImageSpan.class)) {
                     getText().removeSpan(span);
                 }
                 getText().setSpan(new RemoveSpan(), st, en, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
@@ -198,16 +198,18 @@ public class MarkdownEditText extends EditText {
                     if (start < getText().length() && getText().charAt(start) == '\n') {
                         if (start + 1 == s.length() || s.charAt(start + 1) == '\n')
                             insertBefore(start + 1, new SpannableString(" "));
-                        for (LeadingMarginSpan span : getText().getSpans(start, start, LeadingMarginSpan.class)) {
+                        for (TabSpan span : getText().getSpans(start, start, TabSpan.class)) {
                             int oldStart = getText().getSpanStart(span);
                             int oldEnd = getText().getSpanEnd(span);
                             if (oldStart < start && oldEnd > start) {
                                 getText().removeSpan(span);
                                 getText().setSpan(span, oldStart, start, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
-                                getText().setSpan(new LeadingMarginSpan.Standard((int) getTextSize()), start + 1, oldEnd, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                                getText().setSpan(new TabSpan(), start + 1, oldEnd, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                             }
                         }
                         for (CharacterStyle span : getText().getSpans(start, start, CharacterStyle.class)) {
+                            if (!(span instanceof PrivateStyleSpan))
+                                continue;
                             int oldStart = getText().getSpanStart(span);
                             int oldEnd = getText().getSpanEnd(span);
                             if (oldStart < start && oldEnd > start) {
@@ -321,7 +323,7 @@ public class MarkdownEditText extends EditText {
         getText().setSpan(newSpan, start, end, Spannable.SPAN_INCLUSIVE_INCLUSIVE);
     }
 
-    public void toggleStyleSpan(CharacterStyle newSpan) {
+    private void toggleStyleSpan(CharacterStyle newSpan) {
         int start = getSelectionStart();
         int end = getSelectionEnd();
         while (start < end) {
@@ -340,23 +342,29 @@ public class MarkdownEditText extends EditText {
         }
     }
 
+    private interface PrivateStyleSpan {}
+    private class PrivateBoldSpan extends BoldSpan implements PrivateStyleSpan {}
+    private class PrivateItalicSpan extends ItalicSpan implements PrivateStyleSpan {}
+    private class PrivateUnderlineSpan extends UnderlineSpan implements PrivateStyleSpan {}
+    private class PrivateStrikethroughSpan extends StrikethroughSpan implements PrivateStyleSpan {}
+
     public void toggleBold() {
-        toggleStyleSpan(new BoldSpan());
+        toggleStyleSpan(new PrivateBoldSpan());
     }
 
     public void toggleItalic() {
-        toggleStyleSpan(new ItalicSpan());
+        toggleStyleSpan(new PrivateItalicSpan());
     }
 
     public void toggleUnderline() {
-        toggleStyleSpan(new UnderlineSpan());
+        toggleStyleSpan(new PrivateUnderlineSpan());
     }
 
     public void toggleStrikethrough() {
-        toggleStyleSpan(new StrikethroughSpan());
+        toggleStyleSpan(new PrivateStrikethroughSpan());
     }
 
-    interface LineOperation {
+    public interface LineOperation {
         void operateOn(int lineStart);
     }
     public void operationOnLines(LineOperation lineOperation) {
@@ -374,6 +382,12 @@ public class MarkdownEditText extends EditText {
         }
     }
 
+    private class TabSpan extends LeadingMarginSpan.Standard {
+        public TabSpan() {
+            super((int) getTextSize());
+        }
+    }
+
     public void indentIncrease() {
         operationOnLines(new LineOperation() {
             @Override
@@ -381,7 +395,7 @@ public class MarkdownEditText extends EditText {
                 int end = lineStart;
                 while (end < getText().length() && ((end == lineStart && getText().charAt(lineStart) != '\n') || getText().charAt(end) != '\n'))
                     end ++;
-                getText().setSpan(new LeadingMarginSpan.Standard((int) getTextSize()), lineStart, end, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                getText().setSpan(new TabSpan(), lineStart, end, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                 if ((getNumberingAtLine(lineStart)) != 0) {
                     setLineNumbered();
                 }
@@ -396,7 +410,7 @@ public class MarkdownEditText extends EditText {
                 int end = lineStart;
                 while (end < getText().length() && (getText().charAt(end) != '\n'))
                     end ++;
-                LeadingMarginSpan[] spans = getText().getSpans(lineStart, end, LeadingMarginSpan.class);
+                TabSpan[] spans = getText().getSpans(lineStart, end, TabSpan.class);
                 if (spans.length > 0)
                     getText().removeSpan(spans[0]);
                 if ((getNumberingAtLine(lineStart)) != 0) {
@@ -414,8 +428,8 @@ public class MarkdownEditText extends EditText {
         this.checkboxCheckedRes = checkboxCheckedRes;
     }
 
-    int checkboxRes;
-    int checkboxCheckedRes;
+    private int checkboxRes;
+    private int checkboxCheckedRes;
 
     private void removeLinePrefixes(int lineStart) {
         if (lineStart + 4 <= getText().length()) {
@@ -439,25 +453,41 @@ public class MarkdownEditText extends EditText {
         }
     }
 
-    ShapeDrawable bullet;
+    private ShapeDrawable bullet;
     {
         bullet = new ShapeDrawable(new DotShape(4));
         bullet.getPaint().setColor(Color.BLACK);
     }
 
-    private ImageSpan getBulletImageSpan() {
+    private class LinePrefixImageSpan extends CenteredImageSpan {
+        public LinePrefixImageSpan(Drawable b) {
+            super(b, DynamicDrawableSpan.ALIGN_BASELINE);
+        }
+
+        public LinePrefixImageSpan(int resourceId) {
+            super(getContext(), resourceId, DynamicDrawableSpan.ALIGN_BASELINE);
+        }
+    }
+
+    private LinePrefixImageSpan getBulletImageSpan() {
         ((DotShape)bullet.getShape()).setRadius(getTextSize() / 8);
         bullet.getShape().resize(getTextSize() / 2, getTextSize() / 4);
-        bullet.setBounds(0,0, (int) (getTextSize() / 2), (int) (getTextSize() / 4));
-        return new CenteredImageSpan(bullet, DynamicDrawableSpan.ALIGN_BASELINE).setSpacing((int)getTextSize() / 4);
+        bullet.setBounds(0, 0, (int) (getTextSize() / 2), (int) (getTextSize() / 4));
+        LinePrefixImageSpan span = new LinePrefixImageSpan(bullet);
+        span.setSpacing((int)getTextSize() / 4);
+        return span;
     }
 
-    private ImageSpan getCheckboxImageSpan() {
-        return new CenteredImageSpan(getContext(), checkboxRes, DynamicDrawableSpan.ALIGN_BASELINE).setSpacing((int)getTextSize() / 4);
+    private LinePrefixImageSpan getCheckboxImageSpan() {
+        LinePrefixImageSpan span = new LinePrefixImageSpan(checkboxRes);
+        span.setSpacing((int)getTextSize() / 4);
+        return span;
     }
 
-    private ImageSpan getCheckboxCheckedImageSpan() {
-        return new CenteredImageSpan(getContext(), checkboxCheckedRes, DynamicDrawableSpan.ALIGN_BASELINE).setSpacing((int)getTextSize() / 4);
+    private LinePrefixImageSpan getCheckboxCheckedImageSpan() {
+        LinePrefixImageSpan span = new LinePrefixImageSpan(checkboxCheckedRes);
+        span.setSpacing((int)getTextSize() / 4);
+        return span;
     }
 
     public void setLineBulleted() {
@@ -491,14 +521,14 @@ public class MarkdownEditText extends EditText {
             public void operateOn(int lineStart) {
                 removeLinePrefixes(lineStart);
                 int prevLineStart = lineStart - 1;
-                int indentLevel = getText().getSpans(lineStart, lineStart, LeadingMarginSpan.class).length;
+                int indentLevel = getText().getSpans(lineStart, lineStart, TabSpan.class).length;
                 int number = 1;
                 while (true) {
                     while (prevLineStart > 0 && getText().charAt(prevLineStart - 1) != '\n')
                         prevLineStart--;
                     if (prevLineStart < 0)
                         break;
-                    int prevIndentLevel = getText().getSpans(prevLineStart, prevLineStart, LeadingMarginSpan.class).length;
+                    int prevIndentLevel = getText().getSpans(prevLineStart, prevLineStart, TabSpan.class).length;
                     if (prevIndentLevel < indentLevel)
                         break;
                     if (prevIndentLevel == indentLevel) {
@@ -533,7 +563,7 @@ public class MarkdownEditText extends EditText {
         });
     }
 
-    class SpanTag {
+    private class SpanTag {
         int position;
         String tag;
 
@@ -551,7 +581,7 @@ public class MarkdownEditText extends EditText {
         for (Object span : spans) {
             int start = getText().getSpanStart(span);
             int end = getText().getSpanEnd(span);
-            if (span instanceof LeadingMarginSpan) {
+            if (span instanceof TabSpan) {
                 tags.add(new SpanTag(start, "\t"));
             } else if (enableCharacterStyle) {
                 if (span instanceof BoldSpan) {
@@ -610,7 +640,7 @@ public class MarkdownEditText extends EditText {
         return builder.toString();
     }
 
-    class SpanPosition {
+    private class SpanPosition {
         int from;
         int to;
         Object span;
@@ -624,7 +654,7 @@ public class MarkdownEditText extends EditText {
         }
     }
 
-    public CharacterStyle getStyleSpan(String tag) {
+    private CharacterStyle getStyleSpan(String tag) {
         if (tag.equals("em"))
             return new ItalicSpan();
         if (tag.equals("strong"))
@@ -678,7 +708,7 @@ public class MarkdownEditText extends EditText {
 
             if (!paragraph.isEmpty()) {
                 for (int i = 0; i < tabs; i++)
-                    spans.add(new SpanPosition(matcher.start() - charDiff, matcher.end() - charDiff - charDiffInParagraph, new LeadingMarginSpan.Standard((int) getTextSize()), Spanned.SPAN_INCLUSIVE_INCLUSIVE));
+                    spans.add(new SpanPosition(matcher.start() - charDiff, matcher.end() - charDiff - charDiffInParagraph, new TabSpan(), Spanned.SPAN_INCLUSIVE_INCLUSIVE));
             }
             charDiff += charDiffInParagraph;
             matcher.appendReplacement(output, paragraph);
@@ -708,8 +738,14 @@ public class MarkdownEditText extends EditText {
         setText(convertToRichText(markdown));
     }
 
-    void setupCheckboxClickable(final int start, final int end, final boolean checked) {
-        getText().setSpan(new ClickableSpan() {
+    private abstract class LinkSpan extends ClickableSpan {
+        @Override
+        public void updateDrawState(TextPaint ds) {
+        }
+    }
+
+    private void setupCheckboxClickable(final int start, final int end, final boolean checked) {
+        getText().setSpan(new LinkSpan() {
             @Override
             public void onClick(View widget) {
                 getText().removeSpan(this);
@@ -719,10 +755,6 @@ public class MarkdownEditText extends EditText {
                     getText().replace(start, start + 4, getCheckboxCheckedSpannable());
                 clearFocus();
                 setupCheckboxClickable(start, end, !checked);
-            }
-
-            @Override
-            public void updateDrawState(TextPaint ds) {
             }
         }, start, end, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
     }
@@ -750,7 +782,7 @@ public class MarkdownEditText extends EditText {
             viewSource = false;
             setMarkdown(getText().toString());
         }
-        for (ClickableSpan span : getText().getSpans(0, length(), ClickableSpan.class)) {
+        for (LinkSpan span : getText().getSpans(0, length(), LinkSpan.class)) {
             getText().removeSpan(span);
         }
         setFocusable(true);
