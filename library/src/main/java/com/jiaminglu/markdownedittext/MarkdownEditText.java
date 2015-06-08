@@ -149,7 +149,7 @@ public class MarkdownEditText extends EditText {
             else
                 return false;
         }
-        return start == 0 || getText().charAt(start - 1) == '\n';
+        return i < 0 && (start == 0 || getText().charAt(start - 1) == '\n');
     }
 
     TextWatcher watcher;
@@ -662,10 +662,10 @@ public class MarkdownEditText extends EditText {
 
         StringBuffer result = new StringBuffer();
 
-        Pattern emptyLines = Pattern.compile(" *\\n");
+        Pattern emptyLines = Pattern.compile("(?m) +$");
         Matcher matcher = emptyLines.matcher(builder);
         while (matcher.find()) {
-            matcher.appendReplacement(result, "\n");
+            matcher.appendReplacement(result, "");
         }
         matcher.appendTail(result);
 
