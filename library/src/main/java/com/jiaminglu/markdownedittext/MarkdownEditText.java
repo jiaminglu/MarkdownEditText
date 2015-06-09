@@ -192,6 +192,12 @@ public class MarkdownEditText extends EditText {
             private void clearLinePrefix(int st, int en) {
                 if (st >= en)
                     return;
+                for (LinePrefixImageSpan span : getText().getSpans(st, st, LinePrefixImageSpan.class)) {
+                    getText().removeSpan(span);
+                }
+                for (LinkSpan span : getText().getSpans(st, st, LinkSpan.class)) {
+                    getText().removeSpan(span);
+                }
                 getText().setSpan(new RemoveSpan(), st, en, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
             }
 
@@ -460,6 +466,12 @@ public class MarkdownEditText extends EditText {
     private int checkboxCheckedRes;
 
     private void removeLinePrefixes(int lineStart) {
+        for (LinePrefixImageSpan span : getText().getSpans(lineStart, lineStart, LinePrefixImageSpan.class)) {
+            getText().removeSpan(span);
+        }
+        for (LinkSpan span : getText().getSpans(lineStart, lineStart, LinkSpan.class)) {
+            getText().removeSpan(span);
+        }
         if (lineStart + 4 <= getText().length()) {
             String linePrefix = getText().subSequence(lineStart, lineStart + 4).toString();
             if (linePrefix.equals("[ ] ") || linePrefix.equals("[x] ")) {
