@@ -711,7 +711,7 @@ public class MarkdownEditText extends EditText {
 
     private Spannable convertToRichText(CharSequence string) {
         StringBuffer result = new StringBuffer();
-        Pattern addLeadingSpace = Pattern.compile("\\n\\t*(\\[(x| ) ]|\\*|\\d+.)(?! )");
+        Pattern addLeadingSpace = Pattern.compile("(?m)\\t*(\\[(x| )]|\\*|\\d+.)(?! )");
         Matcher addSpaceMatcher = addLeadingSpace.matcher(string);
         while (addSpaceMatcher.find()) {
             addSpaceMatcher.appendReplacement(result, addSpaceMatcher.group());
