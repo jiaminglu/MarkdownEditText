@@ -140,7 +140,7 @@ public class MarkdownEditText extends EditText {
         start--;
         while (start > 0 && Character.isDigit(getText().charAt(start - 1)))
             start--;
-        if (getText().charAt(start) != '.' && (start == 0 || getText().charAt(start - 1) == '\n'))
+        if (start == 0 || getText().charAt(start - 1) == '\n')
             return start;
         return -1;
     }
