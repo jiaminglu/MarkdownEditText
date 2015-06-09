@@ -2,8 +2,8 @@
 <resources>
     <declare-styleable name="MarkdownEditText">
         <attr name="characterStyleEnabled" format="boolean"/>
-        <attr name="checkboxDrawable" format="integer"/>
-        <attr name="checkboxCheckedDrawable" format="integer"/>
+        <attr name="checkboxDrawable" format="reference"/>
+        <attr name="checkboxCheckedDrawable" format="reference"/>
         <attr name="markdown" format="string"/>
         <attr name="viewMode" format="boolean"/>
     </declare-styleable>
