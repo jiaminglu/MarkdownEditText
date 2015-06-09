@@ -87,7 +87,7 @@ public class MarkdownEditText extends EditText {
                     selStart = end;
                     changed = true;
                 }
-            } else if (prevWordIsNumber(selStart) != -1) {
+            } else if (selStart > 0 && selStart < length() && getText().charAt(selStart) == ' ' && prevWordIsNumber(selStart) != -1) {
                 selStart --;
                 changed = true;
             }
@@ -104,7 +104,7 @@ public class MarkdownEditText extends EditText {
                     selEnd = end;
                     changed = true;
                 }
-            } else if (prevWordIsNumber(selEnd) != -1) {
+            } else if (selStart > 0 && selStart < length() && getText().charAt(selStart) == ' ' && prevWordIsNumber(selEnd) != -1) {
                 selEnd --;
                 changed = true;
             }
