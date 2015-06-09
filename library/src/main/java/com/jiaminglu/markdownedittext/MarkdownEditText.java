@@ -262,7 +262,7 @@ public class MarkdownEditText extends EditText {
                             getText().replace(start + 1, start + 5, getCheckboxSpannable());
                         } else if (start + 5 <= getText().length() && getText().subSequence(start + 1, start + 5).toString().equals("[x] ")) {
                             getText().replace(start + 1, start + 5, getCheckboxCheckedSpannable());
-                        } else if (start + 2 <= getText().length() && getText().subSequence(start + 1, start + 3).toString().equals("* ")) {
+                        } else if (start + 3 <= getText().length() && getText().subSequence(start + 1, start + 3).toString().equals("* ")) {
                             getText().replace(start + 1, start + 3, getBulletSpannable());
                         } else if ((numbering = getNumberingAtLine(start + 1)) != 0) {
                         } else if (count > 0 && start != 0) {
