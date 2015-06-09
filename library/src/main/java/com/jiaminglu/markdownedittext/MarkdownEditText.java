@@ -3,6 +3,7 @@ package com.jiaminglu.markdownedittext;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.TypedArray;
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.ShapeDrawable;
@@ -18,6 +19,7 @@ import android.text.TextWatcher;
 import android.text.method.LinkMovementMethod;
 import android.text.style.CharacterStyle;
 import android.text.style.ClickableSpan;
+import android.text.style.ImageSpan;
 import android.text.style.LeadingMarginSpan;
 import android.text.style.StrikethroughSpan;
 import android.text.style.UnderlineSpan;
@@ -63,8 +65,13 @@ public class MarkdownEditText extends EditText {
     private void applyXmlAttrs(AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         TypedArray a = getContext().obtainStyledAttributes(attrs, R.styleable.MarkdownEditText, defStyleAttr, defStyleRes);
         setCharacterStyleEnabled(a.getBoolean(R.styleable.MarkdownEditText_characterStyleEnabled, false));
-        setCheckboxRes(a.getInt(R.styleable.MarkdownEditText_checkboxDrawable, R.drawable.ic_checkbox_blank_outline_black_18dp));
-        setCheckboxCheckedRes(a.getInt(R.styleable.MarkdownEditText_checkboxCheckedDrawable, R.drawable.ic_checkbox_marked_black_18dp));
+
+        Drawable checkboxDrawable = a.getDrawable(R.styleable.MarkdownEditText_checkboxDrawable);
+        setCheckbox(checkboxDrawable != null ? checkboxDrawable : getContext().getResources().getDrawable(R.drawable.ic_checkbox_blank_outline_black_18dp));
+
+        Drawable checkboxCheckedDrawable = a.getDrawable(R.styleable.MarkdownEditText_checkboxCheckedDrawable);
+        setCheckboxChecked(checkboxCheckedDrawable != null ? checkboxCheckedDrawable : getContext().getResources().getDrawable(R.drawable.ic_checkbox_marked_black_18dp));
+
         String markdown = a.getString(R.styleable.MarkdownEditText_markdown);
         if (!TextUtils.isEmpty(markdown))
             setMarkdown(markdown);
@@ -454,16 +461,16 @@ public class MarkdownEditText extends EditText {
         });
     }
 
-    public void setCheckboxRes(int checkboxRes) {
-        this.checkboxRes = checkboxRes;
+    public void setCheckbox(Drawable checkbox) {
+        this.checkbox = checkbox;
     }
 
-    public void setCheckboxCheckedRes(int checkboxCheckedRes) {
-        this.checkboxCheckedRes = checkboxCheckedRes;
+    public void setCheckboxChecked(Drawable checkboxChecked) {
+        this.checkboxChecked = checkboxChecked;
     }
 
-    private int checkboxRes;
-    private int checkboxCheckedRes;
+    private Drawable checkbox;
+    private Drawable checkboxChecked;
 
     private void removeLinePrefixes(int lineStart) {
         for (LinePrefixImageSpan span : getText().getSpans(lineStart, lineStart, LinePrefixImageSpan.class)) {
@@ -519,13 +526,13 @@ public class MarkdownEditText extends EditText {
     }
 
     private LinePrefixImageSpan getCheckboxImageSpan() {
-        LinePrefixImageSpan span = new LinePrefixImageSpan(checkboxRes);
+        LinePrefixImageSpan span = new LinePrefixImageSpan(checkbox);
         span.setSpacing((int)getTextSize() / 4);
         return span;
     }
 
     private LinePrefixImageSpan getCheckboxCheckedImageSpan() {
-        LinePrefixImageSpan span = new LinePrefixImageSpan(checkboxCheckedRes);
+        LinePrefixImageSpan span = new LinePrefixImageSpan(checkboxChecked);
         span.setSpacing((int) getTextSize() / 4);
         return span;
     }
@@ -888,5 +895,4 @@ public class MarkdownEditText extends EditText {
             setText(getMarkdown());
         }
     }
-
 }
