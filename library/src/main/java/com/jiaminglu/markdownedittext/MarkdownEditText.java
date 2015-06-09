@@ -594,10 +594,16 @@ public class MarkdownEditText extends EditText {
     private class SpanTag {
         int position;
         String tag;
+        int type;
 
-        public SpanTag(int position, String tag) {
+        static final int TYPE_PARAGRAPH = 0;
+        static final int TYPE_CLOSING = 1;
+        static final int TYPE_OPENING = 2;
+
+        public SpanTag(int position, String tag, int type) {
             this.position = position;
             this.tag = tag;
+            this.type = type;
         }
     }
 
@@ -610,20 +616,20 @@ public class MarkdownEditText extends EditText {
             int start = getText().getSpanStart(span);
             int end = getText().getSpanEnd(span);
             if (span instanceof TabSpan) {
-                tags.add(new SpanTag(start, "\t"));
+                tags.add(new SpanTag(start, "\t", SpanTag.TYPE_PARAGRAPH));
             } else if (enableCharacterStyle) {
                 if (span instanceof BoldSpan) {
-                    tags.add(new SpanTag(start, "<strong>"));
-                    tags.add(new SpanTag(end, "</strong>"));
+                    tags.add(new SpanTag(start, "<strong>", SpanTag.TYPE_OPENING));
+                    tags.add(new SpanTag(end, "</strong>", SpanTag.TYPE_CLOSING));
                 } else if (span instanceof ItalicSpan) {
-                    tags.add(new SpanTag(start, "<em>"));
-                    tags.add(new SpanTag(end, "</em>"));
+                    tags.add(new SpanTag(start, "<em>", SpanTag.TYPE_OPENING));
+                    tags.add(new SpanTag(end, "</em>", SpanTag.TYPE_CLOSING));
                 } else if (span instanceof UnderlineSpan) {
-                    tags.add(new SpanTag(start, "<u>"));
-                    tags.add(new SpanTag(end, "</u>"));
+                    tags.add(new SpanTag(start, "<u>", SpanTag.TYPE_OPENING));
+                    tags.add(new SpanTag(end, "</u>", SpanTag.TYPE_CLOSING));
                 } else if (span instanceof StrikethroughSpan) {
-                    tags.add(new SpanTag(start, "<del>"));
-                    tags.add(new SpanTag(end, "</del>"));
+                    tags.add(new SpanTag(start, "<del>", SpanTag.TYPE_OPENING));
+                    tags.add(new SpanTag(end, "</del>", SpanTag.TYPE_CLOSING));
                 }
             }
         }
@@ -631,7 +637,8 @@ public class MarkdownEditText extends EditText {
         Collections.sort(tags, new Comparator<SpanTag>() {
             @Override
             public int compare(SpanTag lhs, SpanTag rhs) {
-                return lhs.position < rhs.position ? -1 : lhs.position == rhs.position ? 0 : 1;
+                return lhs.position < rhs.position ? -1 : lhs.position > rhs.position ? 1
+                        : lhs.type < rhs.type ? -1 : lhs.type > rhs.type ? 1 : 0;
             }
         });
 
@@ -642,8 +649,8 @@ public class MarkdownEditText extends EditText {
         for (int i = 0; i < tags.size(); i ++) {
             if (tags.get(i).position > start)
                 builder.append(getText().subSequence(start, tags.get(i).position));
-            if (tags.get(i).tag.charAt(0) == '<') {
-                if (tags.get(i).tag.charAt(1) == '/') {
+            if (tags.get(i).type >= SpanTag.TYPE_CLOSING) {
+                if (tags.get(i).type == SpanTag.TYPE_CLOSING) {
                     int n = 0;
                     while (!tags.get(i + n).tag.substring(2).equals(tagStack.peek().substring(1))) {
                         n++;
@@ -740,7 +747,7 @@ public class MarkdownEditText extends EditText {
                 Matcher tagMatcher = styleTag.matcher(paragraph);
                 while (tagMatcher.find()) {
                     if (tagMatcher.group(1).isEmpty()) {
-                        tagStack.push(new SpanTag(paragraphStart + tagMatcher.start() + tabs - charDiffInParagraph, tagMatcher.group(2)));
+                        tagStack.push(new SpanTag(paragraphStart + tagMatcher.start() + tabs - charDiffInParagraph, tagMatcher.group(2), 0));
                     } else {
                         while (!tagStack.empty()) {
                             spans.add(new SpanPosition(tagStack.peek().position, paragraphStart + tagMatcher.start() + tabs - charDiffInParagraph, getStyleSpan(tagStack.peek().tag), Spannable.SPAN_INCLUSIVE_INCLUSIVE));
