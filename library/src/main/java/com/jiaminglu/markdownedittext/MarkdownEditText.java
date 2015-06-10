@@ -179,10 +179,13 @@ public class MarkdownEditText extends EditText {
         setLinksClickable(true);
         setMovementMethod(LinkMovementMethod.getInstance());
         addTextChangedListener(watcher = new TextWatcher() {
+            boolean firstTimeSetText = false;
             @Override
             public void beforeTextChanged(CharSequence s, int ostart, int count, int after) {
                 if (viewSource)
                     return;
+                if (s.length() == 0)
+                    firstTimeSetText = true;
                 int start = ostart;
                 while (count > 0) {
                     if (s.charAt(start) == '\n' && start + 1 <= getText().length()) {
@@ -232,6 +235,8 @@ public class MarkdownEditText extends EditText {
             @Override
             public void onTextChanged(CharSequence s, int start, int before, int count) {
                 if (viewSource)
+                    return;
+                if (firstTimeSetText)
                     return;
                 int numbering;
                 if (start > 0 && getText().charAt(start - 1) == '\n' && (start == length() || getText().charAt(start) == '\n'))
@@ -316,6 +321,10 @@ public class MarkdownEditText extends EditText {
 
             @Override
             public void afterTextChanged(Editable s) {
+                if (firstTimeSetText) {
+                    initRichText();
+                    return;
+                }
                 for (RemoveSpan span : s.getSpans(0, s.length(), RemoveSpan.class)) {
                     int start = s.getSpanStart(span);
                     int end = s.getSpanEnd(span);
@@ -726,9 +735,7 @@ public class MarkdownEditText extends EditText {
     }
 
     public void setMarkdown(CharSequence markdown) {
-        removeTextChangedListener(watcher);
         setText(convertToRichText(markdown));
-        addTextChangedListener(watcher);
     }
 
     private class SpanPosition {
@@ -825,6 +832,11 @@ public class MarkdownEditText extends EditText {
             s.setSpan(spanPosition.span, spanPosition.from, spanPosition.to, spanPosition.type);
         }
 
+        return s;
+    }
+
+    void initRichText() {
+        Spannable s = getText();
         for (int i = 0; i < s.length(); i++) {
             if (i == 0 || s.charAt(i - 1) == '\n') {
                 if (i + 5 <= s.length() && s.subSequence(i, i + 5).toString().equals("- [ ]")) {
@@ -840,19 +852,16 @@ public class MarkdownEditText extends EditText {
         }
 
         if (imageHandler != null) {
-            Pattern images = Pattern.compile("(?m)!\\[(.*)\\]\\((.*)\\)");
+            Pattern images = Pattern.compile("(?m)!\\[(.*?)\\]\\((.*?)\\)");
             Matcher imageMacher = images.matcher(s);
             while (imageMacher.find()) {
                 int start = imageMacher.start();
                 int end = imageMacher.end();
                 final InlineImage span = setImageThumbnail(s, start, end, bullet);
-                span.spannable = s;
                 setImageLink(s, start, end, imageMacher.group(2));
                 imageHandler.fetch(span, imageMacher.group(2));
-                span.spannable = null;
             }
         }
-        return s;
     }
 
     public interface ImageHandler {
