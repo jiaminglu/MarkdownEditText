@@ -757,6 +757,7 @@ public class MarkdownEditText extends EditText {
         return null;
     }
 
+    // must be used inside setText()
     private Spannable convertToRichText(CharSequence string) {
         StringBuffer result = new StringBuffer();
         Pattern addLeadingSpace = Pattern.compile("(?m)\\t*(- \\[(x| )]|\\*|\\d+\\.)(?! )");
@@ -844,9 +845,11 @@ public class MarkdownEditText extends EditText {
             while (imageMacher.find()) {
                 int start = imageMacher.start();
                 int end = imageMacher.end();
-                InlineImage span = setImageThumbnail(s, start, end, bullet);
+                final InlineImage span = setImageThumbnail(s, start, end, bullet);
+                span.spannable = s;
                 setImageLink(s, start, end, imageMacher.group(2));
                 imageHandler.fetch(span, imageMacher.group(2));
+                span.spannable = null;
             }
         }
         return s;
@@ -942,15 +945,17 @@ public class MarkdownEditText extends EditText {
     }
 
     public class InlineImage extends ImageSpan {
+        Spannable spannable;
         private InlineImage(Drawable drawable) {
             super(drawable);
         }
         public void setImage(Drawable drawable) {
-            int start = getText().getSpanStart(this);
-            int end = getText().getSpanEnd(this);
-            getText().removeSpan(this);
+            Spannable s = spannable == null ? getText() : spannable;
+            int start = s.getSpanStart(this);
+            int end = s.getSpanEnd(this);
+            s.removeSpan(this);
             if (start >= 0 && drawable != null)
-                setImageThumbnail(getText(), start, end, drawable);
+                setImageThumbnail(s, start, end, drawable);
         }
     }
 
@@ -975,7 +980,6 @@ public class MarkdownEditText extends EditText {
         removeTextChangedListener(watcher);
         SpannableString string = new SpannableString(String.format("![%s](%s)", alt, uri));
         InlineImage image = setImageThumbnail(string, 0, string.length(), bullet);
-        imageHandler.fetch(image, uri);
         setImageLink(string, 0, string.length(), uri);
         int start = getSelectionStart();
         if (start == -1)
@@ -983,6 +987,7 @@ public class MarkdownEditText extends EditText {
         while (start < length() && getText().charAt(start) != '\n')
             start ++;
         getText().insert(start, string);
+        imageHandler.fetch(image, uri);
         addTextChangedListener(watcher);
         return image;
     }
