@@ -77,7 +77,18 @@ public class MarkdownEditText extends EditText {
             setMarkdown(markdown);
         if (a.getBoolean(R.styleable.MarkdownEditText_viewMode, false))
             enterViewMode();
+
+        imageOffset = (int) a.getDimension(com.android.internal.R.styleable.TextView_lineSpacingExtra, 0);
+
         a.recycle();
+    }
+
+    int imageOffset;
+
+    @Override
+    public void setLineSpacing(float a, float b) {
+        super.setLineSpacing(a,b);
+        imageOffset = (int) a;
     }
 
     @Override
@@ -529,19 +540,22 @@ public class MarkdownEditText extends EditText {
         bullet.getShape().resize(getTextSize() / 2, getTextSize() / 4);
         bullet.setBounds(0, 0, (int) (getTextSize() / 2), (int) (getTextSize() / 4));
         LinePrefixImageSpan span = new LinePrefixImageSpan(bullet);
-        span.setSpacing((int)getTextSize() / 4);
+        span.setSpacing((int) getTextSize() / 4);
+        span.setOffset(imageOffset);
         return span;
     }
 
     private LinePrefixImageSpan getCheckboxImageSpan() {
         LinePrefixImageSpan span = new LinePrefixImageSpan(checkbox);
-        span.setSpacing((int)getTextSize() / 4);
+        span.setSpacing((int) getTextSize() / 4);
+        span.setOffset(imageOffset);
         return span;
     }
 
     private LinePrefixImageSpan getCheckboxCheckedImageSpan() {
         LinePrefixImageSpan span = new LinePrefixImageSpan(checkboxChecked);
         span.setSpacing((int) getTextSize() / 4);
+        span.setOffset(imageOffset);
         return span;
     }
 

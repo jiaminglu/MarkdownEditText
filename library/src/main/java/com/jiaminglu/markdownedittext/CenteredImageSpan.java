@@ -34,9 +34,13 @@ public class CenteredImageSpan extends ImageSpan {
     }
 
     private int spacing;
+    private int offset;
 
     public void setSpacing(int spacing) {
         this.spacing = spacing;
+    }
+    public void setOffset(int offset) {
+        this.offset = offset;
     }
 
     @Override
@@ -50,7 +54,7 @@ public class CenteredImageSpan extends ImageSpan {
         int fontTop = paint.getFontMetricsInt().ascent;
         int fontBottom = paint.getFontMetricsInt().descent;
         int transY = (bottom - b.getBounds().bottom) -
-                (((fontBottom - fontTop) / 2) - bCenter);
+                (((fontBottom - fontTop) / 2) - bCenter) - offset;
 
 
         canvas.translate(x, transY);
