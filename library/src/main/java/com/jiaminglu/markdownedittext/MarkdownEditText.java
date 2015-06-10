@@ -122,7 +122,7 @@ public class MarkdownEditText extends EditText {
                     selEnd = end;
                     changed = true;
                 }
-            } else if (selStart > 0 && selStart < length() && getText().charAt(selStart) == ' ' && prevWordIsNumber(selEnd) != -1) {
+            } else if (selEnd > 0 && selEnd < length() && getText().charAt(selEnd) == ' ' && prevWordIsNumber(selEnd) != -1) {
                 selEnd --;
                 changed = true;
             }
