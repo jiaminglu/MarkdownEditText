@@ -78,7 +78,7 @@ public class MarkdownEditText extends EditText {
         if (a.getBoolean(R.styleable.MarkdownEditText_viewMode, false))
             enterViewMode();
 
-        imageOffset = (int) a.getDimension(com.android.internal.R.styleable.TextView_lineSpacingExtra, 0);
+        imageOffset = (int) a.getDimension(R.styleable.MarkdownEditText_lineSpacingExtra, 0);
 
         a.recycle();
     }
@@ -491,7 +491,7 @@ public class MarkdownEditText extends EditText {
     private Drawable checkbox;
     private Drawable checkboxChecked;
 
-    private void removeLinePrefixes(int lineStart) {
+    public void removeLinePrefixes(int lineStart) {
         for (LinePrefixImageSpan span : getText().getSpans(lineStart, lineStart, LinePrefixImageSpan.class)) {
             getText().removeSpan(span);
         }
