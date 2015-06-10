@@ -984,8 +984,6 @@ public class MarkdownEditText extends EditText {
         int start = getSelectionStart();
         if (start == -1)
             start = length();
-        while (start < length() && getText().charAt(start) != '\n')
-            start ++;
         getText().insert(start, string);
         imageHandler.fetch(image, uri);
         addTextChangedListener(watcher);
