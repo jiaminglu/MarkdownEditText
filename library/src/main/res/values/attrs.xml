@@ -6,6 +6,6 @@
         <attr name="checkboxCheckedDrawable" format="reference"/>
         <attr name="markdown" format="string"/>
         <attr name="viewMode" format="boolean"/>
-        <attr name="lineSpacingExtra" format="float"/>
+        <attr name="lineSpacingExtra" format="dimension"/>
     </declare-styleable>
 </resources>

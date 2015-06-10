@@ -837,8 +837,31 @@ public class MarkdownEditText extends EditText {
                 }
             }
         }
+
+        if (imageHandler != null) {
+            Pattern images = Pattern.compile("(?m)!\\[(.*)\\]\\((.*)\\)");
+            Matcher imageMacher = images.matcher(s);
+            while (imageMacher.find()) {
+                int start = imageMacher.start();
+                int end = imageMacher.end();
+                InlineImage span = setImageThumbnail(s, start, end, bullet);
+                setImageLink(s, start, end, imageMacher.group(2));
+                imageHandler.fetch(span, imageMacher.group(2));
+            }
+        }
         return s;
     }
+
+    public interface ImageHandler {
+        void fetch(InlineImage image, String uri);
+        void onClick(String uri);
+    }
+
+    public void setImageHandler(ImageHandler imageHandler) {
+        this.imageHandler = imageHandler;
+    }
+
+    ImageHandler imageHandler;
 
     private abstract class LinkSpan extends ClickableSpan {
         @Override
@@ -917,4 +940,49 @@ public class MarkdownEditText extends EditText {
             setText(getMarkdown());
         }
     }
+
+    public class InlineImage extends ImageSpan {
+        private InlineImage(Drawable drawable) {
+            super(drawable);
+        }
+        public void setImage(Drawable drawable) {
+            int start = getText().getSpanStart(this);
+            int end = getText().getSpanEnd(this);
+            getText().removeSpan(this);
+            if (start >= 0 && drawable != null)
+                setImageThumbnail(getText(), start, end, drawable);
+        }
+    }
+
+    private InlineImage setImageThumbnail(Spannable spannable, int st, int en, Drawable image) {
+        InlineImage span = new InlineImage(image);
+        spannable.setSpan(span, st, en, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        return span;
+    }
+
+    private void setImageLink(Spannable spannable, int st, int en, final String uri) {
+        spannable.setSpan(new ClickableSpan() {
+            @Override
+            public void onClick(View widget) {
+                if (imageHandler != null) {
+                    imageHandler.onClick(uri);
+                }
+            }
+        }, st, en, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+    }
+
+    public InlineImage insertImage(String alt, String uri) {
+        removeTextChangedListener(watcher);
+        SpannableString string = new SpannableString(String.format("![%s](%s)", alt, uri));
+        InlineImage image = setImageThumbnail(string, 0, string.length(), bullet);
+        imageHandler.fetch(image, uri);
+        setImageLink(string, 0, string.length(), uri);
+        int start = getSelectionStart();
+        while (start < length() && getText().charAt(start) != '\n')
+            start ++;
+        getText().insert(start, string);
+        addTextChangedListener(watcher);
+        return image;
+    }
+
 }
