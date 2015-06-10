@@ -83,7 +83,7 @@ public class MarkdownEditText extends EditText {
     @Override
     public void onSelectionChanged(int selStart, int selEnd) {
         boolean changed = false;
-        if (selStart > 2 && selStart <= length() && getText().charAt(selStart - 2) == '\n' && getText().charAt(selStart - 1) == ' ') {
+        if (selStart > 2 && selStart <= length() && getText().charAt(selStart - 2) == '\n' && getText().charAt(selStart - 1) == ' ' && (selStart == length() || getText().charAt(selStart) == '\n')) {
             selStart --;
             changed = true;
         } else {
@@ -100,7 +100,7 @@ public class MarkdownEditText extends EditText {
             }
 
         }
-        if (selEnd > 2 && selEnd <= length() && getText().charAt(selEnd - 2) == '\n' && getText().charAt(selEnd - 1) == ' ') {
+        if (selEnd > 2 && selEnd <= length() && getText().charAt(selEnd - 2) == '\n' && getText().charAt(selEnd - 1) == ' ' && (selEnd == length() || getText().charAt(selEnd) == '\n')) {
             selEnd --;
             changed = true;
         } else {
@@ -175,6 +175,8 @@ public class MarkdownEditText extends EditText {
                 int start = ostart;
                 while (count > 0) {
                     if (s.charAt(start) == '\n' && start + 1 <= getText().length()) {
+                        if (start > 0 && s.charAt(start - 1) == ' ')
+                            remove(start - 1, start);
                         for (TabSpan span : getText().getSpans(start + 1, start + count, TabSpan.class))
                             getText().removeSpan(span);
                         break;
