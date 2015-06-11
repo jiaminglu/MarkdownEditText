@@ -322,6 +322,7 @@ public class MarkdownEditText extends EditText {
             public void afterTextChanged(Editable s) {
                 if (firstTimeSetText) {
                     initRichText();
+                    firstTimeSetText = false;
                     return;
                 }
                 for (RemoveSpan span : s.getSpans(0, s.length(), RemoveSpan.class)) {
