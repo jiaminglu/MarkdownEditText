@@ -986,15 +986,12 @@ public class MarkdownEditText extends EditText {
         }, st, en, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
     }
 
-    public InlineImage insertImage(String alt, String uri) {
+    public InlineImage insertImage(int position, String alt, String uri) {
         removeTextChangedListener(watcher);
         SpannableString string = new SpannableString(String.format("![%s](%s)", alt, uri));
         InlineImage image = setImageThumbnail(string, 0, string.length(), bullet);
         setImageLink(string, 0, string.length(), uri);
-        int start = getSelectionStart();
-        if (start == -1)
-            start = length();
-        getText().insert(start, string);
+        getText().insert(position, string);
         imageHandler.fetch(image, uri);
         addTextChangedListener(watcher);
         return image;
