@@ -177,7 +177,6 @@ public class MarkdownEditText extends EditText {
     TextWatcher watcher;
     private void init() {
         setLinksClickable(true);
-        setMovementMethod(LinkMovementMethod.getInstance());
         addTextChangedListener(watcher = new TextWatcher() {
             boolean firstTimeSetText = false;
             @Override
@@ -736,6 +735,7 @@ public class MarkdownEditText extends EditText {
 
     public void setMarkdown(CharSequence markdown) {
         setText(convertToRichText(markdown));
+        setMovementMethod(ClickableArrowKeyMovementMethod.getInstance());
     }
 
     private class SpanPosition {
@@ -916,7 +916,7 @@ public class MarkdownEditText extends EditText {
         }
         setFocusable(false);
         setLinksClickable(true);
-        setMovementMethod(LinkMovementMethod.getInstance());
+        setCursorVisible(false);
 
         Pattern checkboxes = Pattern.compile("(?m)^- \\[( |x)\\].*$");
         Matcher matcher = checkboxes.matcher(getText());
@@ -938,6 +938,7 @@ public class MarkdownEditText extends EditText {
         setFocusable(true);
         setFocusableInTouchMode(true);
         setLinksClickable(false);
+        setCursorVisible(true);
     }
 
     public void toggleViewSource() {
