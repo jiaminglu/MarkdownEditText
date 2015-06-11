@@ -3,7 +3,6 @@ package com.jiaminglu.markdownedittext;
 import android.annotation.TargetApi;
 import android.content.Context;
 import android.content.res.TypedArray;
-import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.ShapeDrawable;
@@ -16,7 +15,6 @@ import android.text.Spanned;
 import android.text.TextPaint;
 import android.text.TextUtils;
 import android.text.TextWatcher;
-import android.text.method.LinkMovementMethod;
 import android.text.style.CharacterStyle;
 import android.text.style.ClickableSpan;
 import android.text.style.ImageSpan;
@@ -135,6 +133,12 @@ public class MarkdownEditText extends EditText {
 
     private boolean viewSource = false;
 
+    public void setFormatterDisabled(boolean formatterDisabled) {
+        this.formatterDisabled = formatterDisabled;
+    }
+
+    private boolean formatterDisabled = false;
+
     public void setCharacterStyleEnabled(boolean enableCharacterStyle) {
         this.enableCharacterStyle = enableCharacterStyle;
     }
@@ -177,169 +181,7 @@ public class MarkdownEditText extends EditText {
     TextWatcher watcher;
     private void init() {
         setLinksClickable(true);
-        addTextChangedListener(watcher = new TextWatcher() {
-            boolean firstTimeSetText = false;
-            @Override
-            public void beforeTextChanged(CharSequence s, int ostart, int count, int after) {
-                if (viewSource)
-                    return;
-                if (s.length() == 0)
-                    firstTimeSetText = true;
-                int start = ostart;
-                while (count > 0) {
-                    if (s.charAt(start) == '\n' && start + 1 <= getText().length()) {
-                        if (start > 0 && s.charAt(start - 1) == ' ')
-                            remove(start - 1, start);
-                        for (TabSpan span : getText().getSpans(start + 1, start + count, TabSpan.class))
-                            getText().removeSpan(span);
-                        break;
-                    }
-                    int numbering;
-                    if (s.charAt(start) == ' ') {
-                        if (prevWordIs(start, "- [ ]")) {
-                            clearLinePrefix(start - 5, ostart);
-                        } else if (prevWordIs(start, "- [x]")) {
-                            clearLinePrefix(start - 5, ostart);
-                        } else if (prevWordIs(start, "*")) {
-                            clearLinePrefix(start - 1, ostart);
-                        } else if ((numbering = prevWordIsNumber(start)) != -1) {
-                            clearLinePrefix(numbering, ostart);
-                        }
-                    }
-                    count--;
-                    start++;
-                }
-            }
-
-            private void clearLinePrefix(int st, int en) {
-                if (st >= en)
-                    return;
-                for (LinePrefixImageSpan span : getText().getSpans(st, st, LinePrefixImageSpan.class)) {
-                    getText().removeSpan(span);
-                }
-                for (LinkSpan span : getText().getSpans(st, st, LinkSpan.class)) {
-                    getText().removeSpan(span);
-                }
-                getText().setSpan(new RemoveSpan(), st, en, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-            }
-
-            void insertBefore(int pos, Spannable str) {
-                getText().setSpan(new InsertSpan(str), pos, pos, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-            }
-
-            void remove(int st, int en) {
-                getText().setSpan(new RemoveSpan(), st, en, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-            }
-
-            @Override
-            public void onTextChanged(CharSequence s, int start, int before, int count) {
-                if (viewSource)
-                    return;
-                if (firstTimeSetText)
-                    return;
-                int numbering;
-                if (start > 0 && getText().charAt(start - 1) == '\n' && (start == length() || getText().charAt(start) == '\n'))
-                    insertBefore(start, new SpannableString(" "));
-                while (count >= 0 && start <= s.length()) {
-                    if (start + 1 < getText().length() && getText().charAt(start) != '\n'
-                            && getText().charAt(start + 1) == ' '
-                            && (start + 2 == length() || getText().charAt(start + 2) == '\n')
-                            && (!prevWordIs(start + 1, "*"))
-                            && (!prevWordIs(start + 1, "- [ ]"))
-                            && (!prevWordIs(start + 1, "- [x]"))
-                            && (prevWordIsNumber(start+1) == -1)) {
-                        remove(start + 1, start + 2);
-                        count--;
-                    }
-                    if (start < getText().length() && getText().charAt(start) == '\n') {
-                        if (start + 1 == s.length() || s.charAt(start + 1) == '\n')
-                            insertBefore(start + 1, new SpannableString(" "));
-                        for (TabSpan span : getText().getSpans(start, start, TabSpan.class)) {
-                            int oldStart = getText().getSpanStart(span);
-                            int oldEnd = getText().getSpanEnd(span);
-                            if (oldStart < start && oldEnd > start) {
-                                getText().removeSpan(span);
-                                getText().setSpan(span, oldStart, start, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
-                                getText().setSpan(new TabSpan(), start + 1, oldEnd, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
-                            }
-                        }
-                        for (CharacterStyle span : getText().getSpans(start, start, CharacterStyle.class)) {
-                            if (!(span instanceof PrivateStyleSpan))
-                                continue;
-                            int oldStart = getText().getSpanStart(span);
-                            int oldEnd = getText().getSpanEnd(span);
-                            if (oldStart < start && oldEnd > start) {
-                                getText().removeSpan(span);
-                                getText().setSpan(span, oldStart, start, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
-                                if (oldEnd > start + 1) {
-                                    try {
-                                        getText().setSpan(span.getClass().newInstance(), start + 1, oldEnd, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
-                                    } catch (InstantiationException e) {
-                                        e.printStackTrace();
-                                    } catch (IllegalAccessException e) {
-                                        e.printStackTrace();
-                                    }
-                                }
-                            }
-                        }
-                        if (start + 7 <= getText().length() && getText().subSequence(start + 1, start + 7).toString().equals("- [ ] ")) {
-                            getText().replace(start + 1, start + 7, getCheckboxSpannable());
-                        } else if (start + 7 <= getText().length() && getText().subSequence(start + 1, start + 7).toString().equals("- [x] ")) {
-                            getText().replace(start + 1, start + 7, getCheckboxCheckedSpannable());
-                        } else if (start + 3 <= getText().length() && getText().subSequence(start + 1, start + 3).toString().equals("* ")) {
-                            getText().replace(start + 1, start + 3, getBulletSpannable());
-                        } else if ((numbering = getNumberingAtLine(start + 1)) != 0) {
-                        } else if (count > 0 && start != 0) {
-                            int prevStart = start - 1;
-                            if (!(prevStart >= 0 && getText().charAt(prevStart) == '\n')) {
-                                while (prevStart > 0 && getText().charAt(prevStart - 1) != '\n')
-                                    prevStart--;
-                            }
-                            if (prevStart + 5 <= getText().length()) {
-                                String prevLinePrefix = getText().subSequence(prevStart, prevStart + 5).toString();
-                                if (prevLinePrefix.startsWith("- [ ]") || prevLinePrefix.startsWith("- [x]")) {
-                                    insertBefore(start + 1, getCheckboxSpannable());
-                                }
-                            }
-                            if (prevStart + 1 <= getText().length()) {
-                                String prevLinePrefix = getText().subSequence(prevStart, prevStart + 1).toString();
-                                if (prevLinePrefix.startsWith("*")) {
-                                    insertBefore(start + 1, getBulletSpannable());
-                                }
-                            }
-                            if ((numbering = getNumberingAtLine(prevStart)) != 0) {
-                                insertBefore(start + 1, new SpannableString(String.valueOf(numbering + 1) + ". "));
-                            }
-                        }
-                    }
-                    start++;
-                    before--;
-                    count--;
-                }
-            }
-
-            @Override
-            public void afterTextChanged(Editable s) {
-                if (firstTimeSetText) {
-                    initRichText();
-                    firstTimeSetText = false;
-                    return;
-                }
-                for (RemoveSpan span : s.getSpans(0, s.length(), RemoveSpan.class)) {
-                    int start = s.getSpanStart(span);
-                    int end = s.getSpanEnd(span);
-                    s.removeSpan(span);
-                    if (start >= 0 && end <= s.length())
-                        s.delete(start, end);
-                }
-                for (InsertSpan span : s.getSpans(0, s.length(), InsertSpan.class)) {
-                    int start = s.getSpanStart(span);
-                    s.removeSpan(span);
-                    if (start >= 0 && start <= s.length())
-                        s.insert(start, span.toBeInserted);
-                }
-            }
-        });
+        addTextChangedListener(watcher = new TextFormatter());
     }
 
     private Spannable getBulletSpannable() {
@@ -988,14 +830,181 @@ public class MarkdownEditText extends EditText {
     }
 
     public InlineImage insertImage(int position, String alt, String uri) {
-        removeTextChangedListener(watcher);
+        formatterDisabled = true;
         SpannableString string = new SpannableString(String.format("![%s](%s)", alt, uri));
         InlineImage image = setImageThumbnail(string, 0, string.length(), bullet);
         setImageLink(string, 0, string.length(), uri);
         getText().insert(position, string);
         imageHandler.fetch(image, uri);
-        addTextChangedListener(watcher);
+        formatterDisabled = false;
         return image;
     }
 
+    private class TextFormatter implements TextWatcher {
+        boolean firstTimeSetText = false;
+
+        @Override
+        public void beforeTextChanged(CharSequence s, int ostart, int count, int after) {
+            if (viewSource)
+                return;
+            if (s.length() == 0)
+                firstTimeSetText = true;
+            int start = ostart;
+            while (count > 0) {
+                if (s.charAt(start) == '\n' && start + 1 <= getText().length()) {
+                    if (start > 0 && s.charAt(start - 1) == ' ')
+                        remove(start - 1, start);
+                    for (TabSpan span : getText().getSpans(start + 1, start + count, TabSpan.class))
+                        getText().removeSpan(span);
+                    break;
+                }
+                int numbering;
+                if (s.charAt(start) == ' ') {
+                    if (prevWordIs(start, "- [ ]")) {
+                        clearLinePrefix(start - 5, ostart);
+                    } else if (prevWordIs(start, "- [x]")) {
+                        clearLinePrefix(start - 5, ostart);
+                    } else if (prevWordIs(start, "*")) {
+                        clearLinePrefix(start - 1, ostart);
+                    } else if ((numbering = prevWordIsNumber(start)) != -1) {
+                        clearLinePrefix(numbering, ostart);
+                    }
+                }
+                count--;
+                start++;
+            }
+        }
+
+        private void clearLinePrefix(int st, int en) {
+            if (st >= en)
+                return;
+            for (LinePrefixImageSpan span : getText().getSpans(st, st, LinePrefixImageSpan.class)) {
+                getText().removeSpan(span);
+            }
+            for (LinkSpan span : getText().getSpans(st, st, LinkSpan.class)) {
+                getText().removeSpan(span);
+            }
+            getText().setSpan(new RemoveSpan(), st, en, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+        }
+
+        void insertBefore(int pos, Spannable str) {
+            getText().setSpan(new InsertSpan(str), pos, pos, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+        }
+
+        void remove(int st, int en) {
+            getText().setSpan(new RemoveSpan(), st, en, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+        }
+
+        @Override
+        public void onTextChanged(CharSequence s, int start, int before, int count) {
+            if (viewSource)
+                return;
+            if (firstTimeSetText)
+                return;
+            int numbering;
+            if (start > 0 && getText().charAt(start - 1) == '\n' && (start == length() || getText().charAt(start) == '\n'))
+                insertBefore(start, new SpannableString(" "));
+            while (count >= 0 && start <= s.length()) {
+                if (start + 1 < getText().length() && getText().charAt(start) != '\n'
+                        && getText().charAt(start + 1) == ' '
+                        && (start + 2 == length() || getText().charAt(start + 2) == '\n')
+                        && (!prevWordIs(start + 1, "*"))
+                        && (!prevWordIs(start + 1, "- [ ]"))
+                        && (!prevWordIs(start + 1, "- [x]"))
+                        && (prevWordIsNumber(start+1) == -1)) {
+                    remove(start + 1, start + 2);
+                    count--;
+                }
+                if (start < getText().length() && getText().charAt(start) == '\n') {
+                    if (start + 1 == s.length() || s.charAt(start + 1) == '\n')
+                        insertBefore(start + 1, new SpannableString(" "));
+                    for (TabSpan span : getText().getSpans(start, start, TabSpan.class)) {
+                        int oldStart = getText().getSpanStart(span);
+                        int oldEnd = getText().getSpanEnd(span);
+                        if (oldStart < start && oldEnd > start) {
+                            getText().removeSpan(span);
+                            getText().setSpan(span, oldStart, start, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                            getText().setSpan(new TabSpan(), start + 1, oldEnd, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                        }
+                    }
+                    for (CharacterStyle span : getText().getSpans(start, start, CharacterStyle.class)) {
+                        if (!(span instanceof PrivateStyleSpan))
+                            continue;
+                        int oldStart = getText().getSpanStart(span);
+                        int oldEnd = getText().getSpanEnd(span);
+                        if (oldStart < start && oldEnd > start) {
+                            getText().removeSpan(span);
+                            getText().setSpan(span, oldStart, start, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                            if (oldEnd > start + 1) {
+                                try {
+                                    getText().setSpan(span.getClass().newInstance(), start + 1, oldEnd, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                                } catch (InstantiationException e) {
+                                    e.printStackTrace();
+                                } catch (IllegalAccessException e) {
+                                    e.printStackTrace();
+                                }
+                            }
+                        }
+                    }
+                    if (formatterDisabled)
+                        continue;
+
+                    if (start + 7 <= getText().length() && getText().subSequence(start + 1, start + 7).toString().equals("- [ ] ")) {
+                        getText().replace(start + 1, start + 7, getCheckboxSpannable());
+                    } else if (start + 7 <= getText().length() && getText().subSequence(start + 1, start + 7).toString().equals("- [x] ")) {
+                        getText().replace(start + 1, start + 7, getCheckboxCheckedSpannable());
+                    } else if (start + 3 <= getText().length() && getText().subSequence(start + 1, start + 3).toString().equals("* ")) {
+                        getText().replace(start + 1, start + 3, getBulletSpannable());
+                    } else if ((numbering = getNumberingAtLine(start + 1)) != 0) {
+                    } else if (count > 0 && start != 0) {
+                        int prevStart = start - 1;
+                        if (!(prevStart >= 0 && getText().charAt(prevStart) == '\n')) {
+                            while (prevStart > 0 && getText().charAt(prevStart - 1) != '\n')
+                                prevStart--;
+                        }
+                        if (prevStart + 5 <= getText().length()) {
+                            String prevLinePrefix = getText().subSequence(prevStart, prevStart + 5).toString();
+                            if (prevLinePrefix.startsWith("- [ ]") || prevLinePrefix.startsWith("- [x]")) {
+                                insertBefore(start + 1, getCheckboxSpannable());
+                            }
+                        }
+                        if (prevStart + 1 <= getText().length()) {
+                            String prevLinePrefix = getText().subSequence(prevStart, prevStart + 1).toString();
+                            if (prevLinePrefix.startsWith("*")) {
+                                insertBefore(start + 1, getBulletSpannable());
+                            }
+                        }
+                        if ((numbering = getNumberingAtLine(prevStart)) != 0) {
+                            insertBefore(start + 1, new SpannableString(String.valueOf(numbering + 1) + ". "));
+                        }
+                    }
+                }
+                start++;
+                before--;
+                count--;
+            }
+        }
+
+        @Override
+        public void afterTextChanged(Editable s) {
+            if (firstTimeSetText) {
+                initRichText();
+                firstTimeSetText = false;
+                return;
+            }
+            for (RemoveSpan span : s.getSpans(0, s.length(), RemoveSpan.class)) {
+                int start = s.getSpanStart(span);
+                int end = s.getSpanEnd(span);
+                s.removeSpan(span);
+                if (start >= 0 && end <= s.length())
+                    s.delete(start, end);
+            }
+            for (InsertSpan span : s.getSpans(0, s.length(), InsertSpan.class)) {
+                int start = s.getSpanStart(span);
+                s.removeSpan(span);
+                if (start >= 0 && start <= s.length())
+                    s.insert(start, span.toBeInserted);
+            }
+        }
+    }
 }
