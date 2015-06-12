@@ -49,9 +49,8 @@ public class ClickableArrowKeyMovementMethod extends ArrowKeyMovementMethod {
             if (link.length != 0) {
                 if (action == MotionEvent.ACTION_UP) {
                     link[0].onClick(widget);
+                    return true;
                 }
-
-                return true;
             }
         }
 

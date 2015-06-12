@@ -17,7 +17,6 @@ import android.text.TextUtils;
 import android.text.TextWatcher;
 import android.text.style.CharacterStyle;
 import android.text.style.ClickableSpan;
-import android.text.style.ImageSpan;
 import android.text.style.LeadingMarginSpan;
 import android.text.style.StrikethroughSpan;
 import android.text.style.UnderlineSpan;
@@ -374,6 +373,7 @@ public class MarkdownEditText extends EditText {
     {
         bullet = new ShapeDrawable(new DotShape(4));
         bullet.getPaint().setColor(Color.BLACK);
+        bullet.setBounds(0,0,10,10);
     }
 
     private class LinePrefixImageSpan extends CenteredImageSpan {
@@ -695,21 +695,22 @@ public class MarkdownEditText extends EditText {
         }
 
         if (imageHandler != null) {
-            Pattern images = Pattern.compile("(?m)!\\[(.*?)\\]\\((.*?)\\)");
             Matcher imageMacher = images.matcher(s);
             while (imageMacher.find()) {
                 int start = imageMacher.start();
                 int end = imageMacher.end();
                 final InlineImage span = setImageThumbnail(s, start, end, bullet);
-                setImageLink(s, start, end, imageMacher.group(2));
+                setImageLink(s, start, end, span);
                 imageHandler.fetch(span, imageMacher.group(2));
             }
         }
     }
 
+    Pattern images = Pattern.compile("(?m)!\\[(.*?)\\]\\((.*?)\\)");
+
     public interface ImageHandler {
         void fetch(InlineImage image, String uri);
-        void onClick(String uri);
+        void onClick(InlineImage image, String uri);
     }
 
     public void setImageHandler(ImageHandler imageHandler) {
@@ -797,33 +798,21 @@ public class MarkdownEditText extends EditText {
         }
     }
 
-    public class InlineImage extends ImageSpan {
-        Spannable spannable;
-        private InlineImage(Drawable drawable) {
-            super(drawable);
-        }
-        public void setImage(Drawable drawable) {
-            Spannable s = spannable == null ? getText() : spannable;
-            int start = s.getSpanStart(this);
-            int end = s.getSpanEnd(this);
-            s.removeSpan(this);
-            if (start >= 0 && drawable != null)
-                setImageThumbnail(s, start, end, drawable);
-        }
-    }
-
     private InlineImage setImageThumbnail(Spannable spannable, int st, int en, Drawable image) {
-        InlineImage span = new InlineImage(image);
+        InlineImage span = new InlineImage(this, image);
         spannable.setSpan(span, st, en, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         return span;
     }
 
-    private void setImageLink(Spannable spannable, int st, int en, final String uri) {
+    private void setImageLink(final Spannable spannable, int st, int en, final InlineImage image) {
         spannable.setSpan(new ClickableSpan() {
             @Override
             public void onClick(View widget) {
                 if (imageHandler != null) {
-                    imageHandler.onClick(uri);
+                    Matcher matcher = images.matcher(getText().subSequence(getText().getSpanStart(image), getText().getSpanEnd(image)));
+                    if (matcher.matches()) {
+                        imageHandler.onClick(image, matcher.group(2));
+                    }
                 }
             }
         }, st, en, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
@@ -833,7 +822,7 @@ public class MarkdownEditText extends EditText {
         formatterDisabled = true;
         SpannableString string = new SpannableString(String.format("![%s](%s)", alt, uri));
         InlineImage image = setImageThumbnail(string, 0, string.length(), bullet);
-        setImageLink(string, 0, string.length(), uri);
+        setImageLink(string, 0, string.length(), image);
         getText().insert(position, string);
         imageHandler.fetch(image, uri);
         formatterDisabled = false;
@@ -913,7 +902,6 @@ public class MarkdownEditText extends EditText {
                         && (!prevWordIs(start + 1, "- [x]"))
                         && (prevWordIsNumber(start+1) == -1)) {
                     remove(start + 1, start + 2);
-                    count--;
                 }
                 if (start < getText().length() && getText().charAt(start) == '\n') {
                     if (start + 1 == s.length() || s.charAt(start + 1) == '\n')
@@ -946,36 +934,36 @@ public class MarkdownEditText extends EditText {
                             }
                         }
                     }
-                    if (formatterDisabled)
-                        continue;
+                    if (!formatterDisabled) {
 
-                    if (start + 7 <= getText().length() && getText().subSequence(start + 1, start + 7).toString().equals("- [ ] ")) {
-                        getText().replace(start + 1, start + 7, getCheckboxSpannable());
-                    } else if (start + 7 <= getText().length() && getText().subSequence(start + 1, start + 7).toString().equals("- [x] ")) {
-                        getText().replace(start + 1, start + 7, getCheckboxCheckedSpannable());
-                    } else if (start + 3 <= getText().length() && getText().subSequence(start + 1, start + 3).toString().equals("* ")) {
-                        getText().replace(start + 1, start + 3, getBulletSpannable());
-                    } else if ((numbering = getNumberingAtLine(start + 1)) != 0) {
-                    } else if (count > 0 && start != 0) {
-                        int prevStart = start - 1;
-                        if (!(prevStart >= 0 && getText().charAt(prevStart) == '\n')) {
-                            while (prevStart > 0 && getText().charAt(prevStart - 1) != '\n')
-                                prevStart--;
-                        }
-                        if (prevStart + 5 <= getText().length()) {
-                            String prevLinePrefix = getText().subSequence(prevStart, prevStart + 5).toString();
-                            if (prevLinePrefix.startsWith("- [ ]") || prevLinePrefix.startsWith("- [x]")) {
-                                insertBefore(start + 1, getCheckboxSpannable());
+                        if (start + 7 <= getText().length() && getText().subSequence(start + 1, start + 7).toString().equals("- [ ] ")) {
+                            getText().replace(start + 1, start + 7, getCheckboxSpannable());
+                        } else if (start + 7 <= getText().length() && getText().subSequence(start + 1, start + 7).toString().equals("- [x] ")) {
+                            getText().replace(start + 1, start + 7, getCheckboxCheckedSpannable());
+                        } else if (start + 3 <= getText().length() && getText().subSequence(start + 1, start + 3).toString().equals("* ")) {
+                            getText().replace(start + 1, start + 3, getBulletSpannable());
+                        } else if ((numbering = getNumberingAtLine(start + 1)) != 0) {
+                        } else if (count > 0 && start != 0) {
+                            int prevStart = start - 1;
+                            if (!(prevStart >= 0 && getText().charAt(prevStart) == '\n')) {
+                                while (prevStart > 0 && getText().charAt(prevStart - 1) != '\n')
+                                    prevStart--;
                             }
-                        }
-                        if (prevStart + 1 <= getText().length()) {
-                            String prevLinePrefix = getText().subSequence(prevStart, prevStart + 1).toString();
-                            if (prevLinePrefix.startsWith("*")) {
-                                insertBefore(start + 1, getBulletSpannable());
+                            if (prevStart + 5 <= getText().length()) {
+                                String prevLinePrefix = getText().subSequence(prevStart, prevStart + 5).toString();
+                                if (prevLinePrefix.startsWith("- [ ]") || prevLinePrefix.startsWith("- [x]")) {
+                                    insertBefore(start + 1, getCheckboxSpannable());
+                                }
                             }
-                        }
-                        if ((numbering = getNumberingAtLine(prevStart)) != 0) {
-                            insertBefore(start + 1, new SpannableString(String.valueOf(numbering + 1) + ". "));
+                            if (prevStart + 1 <= getText().length()) {
+                                String prevLinePrefix = getText().subSequence(prevStart, prevStart + 1).toString();
+                                if (prevLinePrefix.startsWith("*")) {
+                                    insertBefore(start + 1, getBulletSpannable());
+                                }
+                            }
+                            if ((numbering = getNumberingAtLine(prevStart)) != 0) {
+                                insertBefore(start + 1, new SpannableString(String.valueOf(numbering + 1) + ". "));
+                            }
                         }
                     }
                 }
