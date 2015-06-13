@@ -30,7 +30,7 @@ public class CenteredImageSpan extends ImageSpan {
     public int getSize(Paint paint, CharSequence text,
                        int start, int end,
                        Paint.FontMetricsInt fm) {
-        return super.getSize(paint, text, start, end, fm) + spacing;
+        return getCachedDrawable().getBounds().right + spacing;
     }
 
     private int spacing;

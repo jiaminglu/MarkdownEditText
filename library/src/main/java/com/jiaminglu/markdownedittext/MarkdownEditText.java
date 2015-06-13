@@ -97,7 +97,7 @@ public class MarkdownEditText extends EditText {
         } else {
             LinePrefixImageSpan[] spans = getText().getSpans(selStart, selStart, LinePrefixImageSpan.class);
             if (spans.length > 0) {
-                int end = getText().getSpanEnd(spans[0]) + 1;
+                int end = getText().getSpanEnd(spans[0]);
                 if (selStart != end) {
                     selStart = end;
                     changed = true;
@@ -114,7 +114,7 @@ public class MarkdownEditText extends EditText {
         } else {
             LinePrefixImageSpan[] spans = getText().getSpans(selEnd, selEnd, LinePrefixImageSpan.class);
             if (spans.length > 0) {
-                int end = getText().getSpanEnd(spans[0]) + 1;
+                int end = getText().getSpanEnd(spans[0]);
                 if (selEnd != end) {
                     selEnd = end;
                     changed = true;
@@ -186,21 +186,21 @@ public class MarkdownEditText extends EditText {
 
     private Spannable getBulletSpannable() {
         SpannableString spannableString = new SpannableString("* ");
-        spannableString.setSpan(getBulletImageSpan(), 0, 1, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+        spannableString.setSpan(getBulletImageSpan(), 0, 2, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
         return spannableString;
     }
 
     private Spannable getCheckboxSpannable() {
         SpannableString spannableString = new SpannableString("- [ ] ");
-        spannableString.setSpan(getCheckboxImageSpan(), 0, 5, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-        setCheckboxClickable(spannableString, 0, 5, false);
+        spannableString.setSpan(getCheckboxImageSpan(), 0, 6, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+        setCheckboxClickable(spannableString, 0, 6, false);
         return spannableString;
     }
 
     private Spannable getCheckboxCheckedSpannable() {
         SpannableString spannableString = new SpannableString("- [x] ");
-        spannableString.setSpan(getCheckboxCheckedImageSpan(), 0, 5, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-        setCheckboxClickable(spannableString, 0, 5, true);
+        spannableString.setSpan(getCheckboxCheckedImageSpan(), 0, 6, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+        setCheckboxClickable(spannableString, 0, 6, true);
         return spannableString;
     }
 
@@ -411,12 +411,30 @@ public class MarkdownEditText extends EditText {
         return span;
     }
 
+    class MarginSpan extends LeadingMarginSpan.Standard {
+        public MarginSpan(int rest) {
+            super(0, rest);
+        }
+    }
+
+    private void setMargin(int lineStart, Drawable drawable) {
+        for (MarginSpan span : getText().getSpans(lineStart, lineStart, MarginSpan.class)) {
+            getText().removeSpan(span);
+        }
+        int margin = drawable.getBounds().right + (int) getTextSize() / 4;
+        int end = lineStart;
+        while (end < getText().length() && ((end == lineStart && getText().charAt(lineStart) != '\n') || getText().charAt(end) != '\n'))
+            end ++;
+        getText().setSpan(new MarginSpan(margin), lineStart, end, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+    }
+
     public void setLineBulleted() {
         operationOnLines(new LineOperation() {
             @Override
             public void operateOn(int lineStart) {
                 removeLinePrefixes(lineStart);
                 getText().insert(lineStart, getBulletSpannable());
+                setMargin(lineStart, bullet);
             }
         });
     }
@@ -470,6 +488,7 @@ public class MarkdownEditText extends EditText {
             public void operateOn(int lineStart) {
                 removeLinePrefixes(lineStart);
                 getText().insert(lineStart, getCheckboxSpannable());
+                setMargin(lineStart, checkbox);
             }
         });
     }
@@ -480,6 +499,7 @@ public class MarkdownEditText extends EditText {
             public void operateOn(int lineStart) {
                 removeLinePrefixes(lineStart);
                 getText().insert(lineStart, getCheckboxCheckedSpannable());
+                setMargin(lineStart, checkboxChecked);
             }
         });
     }
@@ -849,6 +869,8 @@ public class MarkdownEditText extends EditText {
                         remove(start - 1, start);
                     for (TabSpan span : getText().getSpans(start + 1, start + count, TabSpan.class))
                         getText().removeSpan(span);
+                    for (MarginSpan span : getText().getSpans(start + 1, start + count, MarginSpan.class))
+                        getText().removeSpan(span);
                     break;
                 }
                 int numbering;
@@ -919,6 +941,14 @@ public class MarkdownEditText extends EditText {
                             getText().setSpan(new TabSpan(), start + 1, oldEnd, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                         }
                     }
+                    for (MarginSpan span : getText().getSpans(start, start, MarginSpan.class)) {
+                        int oldStart = getText().getSpanStart(span);
+                        int oldEnd = getText().getSpanEnd(span);
+                        if (oldStart < start && oldEnd > start) {
+                            getText().removeSpan(span);
+                            getText().setSpan(span, oldStart, start, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                        }
+                    }
                     for (CharacterStyle span : getText().getSpans(start, start, CharacterStyle.class)) {
                         if (!(span instanceof PrivateStyleSpan))
                             continue;
@@ -941,11 +971,16 @@ public class MarkdownEditText extends EditText {
                     if (!formatterDisabled) {
 
                         if (start + 7 <= getText().length() && getText().subSequence(start + 1, start + 7).toString().equals("- [ ] ")) {
-                            getText().replace(start + 1, start + 7, getCheckboxSpannable());
+                            getText().setSpan(getCheckboxImageSpan(), start + 1, start + 7, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                            setCheckboxClickable(getText(), start + 1, start + 7, false);
+                            setMargin(start + 1, checkbox);
                         } else if (start + 7 <= getText().length() && getText().subSequence(start + 1, start + 7).toString().equals("- [x] ")) {
-                            getText().replace(start + 1, start + 7, getCheckboxCheckedSpannable());
+                            getText().setSpan(getCheckboxCheckedImageSpan(), start + 1, start + 7, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                            setCheckboxClickable(getText(), start + 1, start + 7, true);
+                            setMargin(start + 1, checkboxChecked);
                         } else if (start + 3 <= getText().length() && getText().subSequence(start + 1, start + 3).toString().equals("* ")) {
-                            getText().replace(start + 1, start + 3, getBulletSpannable());
+                            getText().setSpan(getBulletImageSpan(), start + 1, start + 3, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                            setMargin(start + 1, bullet);
                         } else if ((numbering = getNumberingAtLine(start + 1)) != 0) {
                         } else if (count > 0 && start != 0) {
                             int prevStart = start - 1;
@@ -954,15 +989,17 @@ public class MarkdownEditText extends EditText {
                                     prevStart--;
                             }
                             if (prevStart + 5 <= getText().length()) {
-                                String prevLinePrefix = getText().subSequence(prevStart, prevStart + 5).toString();
-                                if (prevLinePrefix.startsWith("- [ ]") || prevLinePrefix.startsWith("- [x]")) {
+                                String prevLinePrefix = getText().subSequence(prevStart, prevStart + 6).toString();
+                                if (prevLinePrefix.startsWith("- [ ] ") || prevLinePrefix.startsWith("- [x] ")) {
                                     insertBefore(start + 1, getCheckboxSpannable());
+                                    setMargin(start + 1, checkbox);
                                 }
                             }
                             if (prevStart + 1 <= getText().length()) {
-                                String prevLinePrefix = getText().subSequence(prevStart, prevStart + 1).toString();
-                                if (prevLinePrefix.startsWith("*")) {
+                                String prevLinePrefix = getText().subSequence(prevStart, prevStart + 2).toString();
+                                if (prevLinePrefix.startsWith("* ")) {
                                     insertBefore(start + 1, getBulletSpannable());
+                                    setMargin(start + 1, bullet);
                                 }
                             }
                             if ((numbering = getNumberingAtLine(prevStart)) != 0) {
