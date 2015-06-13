@@ -180,6 +180,7 @@ public class MarkdownEditText extends EditText {
     TextWatcher watcher;
     private void init() {
         setLinksClickable(true);
+        setMovementMethod(ClickableArrowKeyMovementMethod.getInstance());
         addTextChangedListener(watcher = new TextFormatter());
     }
 
@@ -777,7 +778,8 @@ public class MarkdownEditText extends EditText {
             setMarkdown(getText().toString());
         }
         for (LinkSpan span : getText().getSpans(0, length(), LinkSpan.class)) {
-            getText().removeSpan(span);
+            if (getText().getSpanEnd(span) > getText().getSpanStart(span) + 5)
+                getText().removeSpan(span);
         }
         setFocusable(true);
         setFocusableInTouchMode(true);
@@ -794,7 +796,9 @@ public class MarkdownEditText extends EditText {
         } else {
             viewSource = true;
             setFocusable(false);
-            setText(getMarkdown());
+            CharSequence md = getMarkdown();
+            setText("");
+            setText(md);
         }
     }
 
