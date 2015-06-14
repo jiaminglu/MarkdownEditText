@@ -239,6 +239,14 @@ public class MarkdownEditText extends EditText {
         int start = getSelectionStart();
         int end = getSelectionEnd();
         while (start < end) {
+            if (start == 0 || getText().charAt(start - 1) == '\n') {
+                Matcher matcher = linePrefixPattern.matcher(getText().subSequence(start, getText().length()));
+                if (matcher.find()) {
+                    start += matcher.end();
+                }
+            }
+            if (start >= end)
+                break;
             int nl = start;
             while (nl < end && getText().charAt(nl) != '\n')
                 nl++;
@@ -908,15 +916,29 @@ public class MarkdownEditText extends EditText {
             if (start > 0 && getText().charAt(start - 1) == '\n' && (start == length() || getText().charAt(start) == '\n'))
                 insertBefore(start, new SpannableString(" "));
             while (count >= 0 && start <= s.length()) {
-                int linestart = start + 1;
-                if (linestart < getText().length() && getText().charAt(start) != '\n'
-                        && getText().charAt(linestart) == ' '
-                        && (linestart + 1 == length() || getText().charAt(linestart + 1) == '\n')
+                if (start + 1 < getText().length() && getText().charAt(start) != '\n'
+                        && getText().charAt(start + 1) == ' '
+                        && (start + 2 == length() || getText().charAt(start + 2) == '\n')
                         && (getText().getSpans(start, start, LinePrefixImageSpan.class).length == 0)
-                        && (prevWordIsNumber(linestart) == -1)) {
-                    remove(linestart, linestart + 1);
+                        && (prevWordIsNumber(start + 1) == -1)) {
+                    remove(start + 1, start + 2);
+                }
+                if (start == 0 || getText().charAt(start - 1) == '\n') {
+                    Matcher matcher = linePrefixPattern.matcher(getText().subSequence(start, getText().length()));
+                    if (matcher.find()) {
+                        for (Style style : getText().getSpans(start + matcher.start(), start + matcher.end(), Style.class)) {
+                            try {
+                                toggleStyleSpan(style.getClass().newInstance(), start + matcher.start(), start + matcher.end());
+                            } catch (InstantiationException e) {
+                                e.printStackTrace();
+                            } catch (IllegalAccessException e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    }
                 }
                 if (start < getText().length() && getText().charAt(start) == '\n') {
+                    int linestart = start + 1;
                     for (TabSpan span : getText().getSpans(start, start, TabSpan.class)) {
                         int oldStart = getText().getSpanStart(span);
                         int oldEnd = getText().getSpanEnd(span);
