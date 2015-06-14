@@ -509,6 +509,8 @@ public class MarkdownEditText extends EditText {
             for (Style span : spans) {
                 int start = getText().getSpanStart(span);
                 int end = getText().getSpanEnd(span);
+                if (start == end)
+                    continue;
                 tags.add(new SpanTag(start, span, SpanTag.TYPE_OPENING));
                 tags.add(new SpanTag(end, span, SpanTag.TYPE_CLOSING));
             }
@@ -517,9 +519,17 @@ public class MarkdownEditText extends EditText {
         Collections.sort(tags, new Comparator<SpanTag>() {
             @Override
             public int compare(SpanTag lhs, SpanTag rhs) {
-                return lhs.position < rhs.position ? -1 : lhs.position > rhs.position ? 1
-                        : lhs.type < rhs.type ? -1 : lhs.type > rhs.type ? 1
-                        : getText().getSpanEnd(lhs.tag) > getText().getSpanEnd(rhs.tag) ? -1 : getText().getSpanEnd(lhs.tag) < getText().getSpanEnd(rhs.tag) ? 1 : 0;
+                int result = lhs.position < rhs.position ? -1 : lhs.position > rhs.position ? 1
+                        : lhs.type < rhs.type ? -1 : lhs.type > rhs.type ? 1 : 0;
+                if (result != 0)
+                    return result;
+                if (lhs.type == SpanTag.TYPE_OPENING)
+                    return getText().getSpanEnd(lhs.tag) > getText().getSpanEnd(rhs.tag) ? -1 : getText().getSpanEnd(lhs.tag) < getText().getSpanEnd(rhs.tag) ? 1
+                            : ((Style) lhs.tag).getStartTag().compareTo(((Style) rhs.tag).getStartTag());
+                if (lhs.type == SpanTag.TYPE_CLOSING)
+                    return getText().getSpanStart(lhs.tag) > getText().getSpanStart(rhs.tag) ? -1 : getText().getSpanStart(lhs.tag) < getText().getSpanStart(rhs.tag) ? 1
+                            : -((Style) lhs.tag).getStartTag().compareTo(((Style) rhs.tag).getStartTag());
+                return 0;
             }
         });
 
@@ -927,7 +937,7 @@ public class MarkdownEditText extends EditText {
                             getText().setSpan(span, oldStart, start, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                             if (oldEnd > linestart) {
                                 try {
-                                    getText().setSpan(span.getClass().newInstance(), start + 1, oldEnd, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
+                                    getText().setSpan(span.getClass().newInstance(), linestart, oldEnd, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                                 } catch (InstantiationException e) {
                                     e.printStackTrace();
                                 } catch (IllegalAccessException e) {
