@@ -8,10 +8,11 @@ import android.view.View;
 import android.widget.Button;
 
 import com.jiaminglu.markdownedittext.MarkdownEditText;
-import com.jiaminglu.markdownedittext.style.html.HtmlBoldStyle;
-import com.jiaminglu.markdownedittext.style.html.HtmlItalicStyle;
-import com.jiaminglu.markdownedittext.style.html.HtmlStrikethroughStyle;
-import com.jiaminglu.markdownedittext.style.html.HtmlUnderlineStyle;
+import com.jiaminglu.markdownedittext.style.BoldStyle;
+import com.jiaminglu.markdownedittext.syntax.HtmlSyntax;
+import com.jiaminglu.markdownedittext.style.ItalicStyle;
+import com.jiaminglu.markdownedittext.style.StrikethroughStyle;
+import com.jiaminglu.markdownedittext.style.UnderlineStyle;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -23,21 +24,22 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
         editor = (MarkdownEditText) findViewById(R.id.editor);
+        editor.setSyntax(new HtmlSyntax());
     }
 
     public void changeFormat(View v) {
         switch (v.getId()) {
             case R.id.bold:
-                editor.toggleStyleSpan(new HtmlBoldStyle());
+                editor.toggleStyleSpan(new BoldStyle());
                 break;
             case R.id.italic:
-                editor.toggleStyleSpan(new HtmlItalicStyle());
+                editor.toggleStyleSpan(new ItalicStyle());
                 break;
             case R.id.underline:
-                editor.toggleStyleSpan(new HtmlUnderlineStyle());
+                editor.toggleStyleSpan(new UnderlineStyle());
                 break;
             case R.id.strikethrough:
-                editor.toggleStyleSpan(new HtmlStrikethroughStyle());
+                editor.toggleStyleSpan(new StrikethroughStyle());
                 break;
             case R.id.indent_in:
                 editor.indentIncrease();

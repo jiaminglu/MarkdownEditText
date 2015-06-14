@@ -21,9 +21,8 @@ import android.util.AttributeSet;
 import android.view.View;
 import android.widget.EditText;
 
-import com.jiaminglu.markdownedittext.style.html.HtmlStyleParser;
 import com.jiaminglu.markdownedittext.style.Style;
-import com.jiaminglu.markdownedittext.style.StyleParser;
+import com.jiaminglu.markdownedittext.syntax.Syntax;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -62,7 +61,6 @@ public class MarkdownEditText extends EditText {
 
     private void applyXmlAttrs(AttributeSet attrs, int defStyleAttr, int defStyleRes) {
         TypedArray a = getContext().obtainStyledAttributes(attrs, R.styleable.MarkdownEditText, defStyleAttr, defStyleRes);
-        setCharacterStyleEnabled(a.getBoolean(R.styleable.MarkdownEditText_characterStyleEnabled, false));
 
         Drawable checkboxDrawable = a.getDrawable(R.styleable.MarkdownEditText_checkboxDrawable);
         setCheckbox(checkboxDrawable != null ? checkboxDrawable : getContext().getResources().getDrawable(R.drawable.ic_checkbox_blank_outline_black_18dp));
@@ -145,12 +143,6 @@ public class MarkdownEditText extends EditText {
     }
 
     private boolean formatterDisabled = false;
-
-    public void setCharacterStyleEnabled(boolean enableCharacterStyle) {
-        this.enableCharacterStyle = enableCharacterStyle;
-    }
-
-    private boolean enableCharacterStyle = false;
 
     private class RemoveSpan {
     }
@@ -500,10 +492,10 @@ public class MarkdownEditText extends EditText {
         @Override
         public String toString() {
             if (type == TYPE_OPENING) {
-                return ((Style) tag).getStartTag();
+                return syntax.getStartTag((Style) tag);
             }
             if (type == TYPE_CLOSING) {
-                return ((Style) tag).getEndTag();
+                return syntax.getEndTag((Style) tag);
             }
             return tag.toString();
         }
@@ -518,7 +510,7 @@ public class MarkdownEditText extends EditText {
         for (TabSpan span : tabs) {
             tags.add(new SpanTag(getText().getSpanStart(span), "\t", SpanTag.TYPE_PARAGRAPH));
         }
-        if (enableCharacterStyle) {
+        if (syntax != null) {
             for (Style span : spans) {
                 int start = getText().getSpanStart(span);
                 int end = getText().getSpanEnd(span);
@@ -538,10 +530,10 @@ public class MarkdownEditText extends EditText {
                     return result;
                 if (lhs.type == SpanTag.TYPE_OPENING)
                     return getText().getSpanEnd(lhs.tag) > getText().getSpanEnd(rhs.tag) ? -1 : getText().getSpanEnd(lhs.tag) < getText().getSpanEnd(rhs.tag) ? 1
-                            : ((Style) lhs.tag).getStartTag().compareTo(((Style) rhs.tag).getStartTag());
+                            : ((Style) lhs.tag).getClass().getName().compareTo(((Style) rhs.tag).getClass().getName());
                 if (lhs.type == SpanTag.TYPE_CLOSING)
                     return getText().getSpanStart(lhs.tag) > getText().getSpanStart(rhs.tag) ? -1 : getText().getSpanStart(lhs.tag) < getText().getSpanStart(rhs.tag) ? 1
-                            : -((Style) lhs.tag).getStartTag().compareTo(((Style) rhs.tag).getStartTag());
+                            : -((Style) lhs.tag).getClass().getName().compareTo(((Style) rhs.tag).getClass().getName());
                 return 0;
             }
         });
@@ -557,14 +549,14 @@ public class MarkdownEditText extends EditText {
                 if (tags.get(i).type == SpanTag.TYPE_CLOSING) {
                     Stack<Object> closingStack = new Stack<>();
                     while (!tagStack.empty() && tags.get(i).tag != tagStack.peek()) {
-                        builder.append(((Style)tagStack.peek()).getEndTag());
+                        builder.append(syntax.getEndTag((Style)tagStack.peek()));
                         closingStack.push(tagStack.peek());
                         tagStack.pop();
                     }
-                    builder.append(((Style) tagStack.peek()).getEndTag());
+                    builder.append(syntax.getEndTag((Style) tagStack.peek()));
                     tagStack.pop();
                     while (!closingStack.empty()) {
-                        builder.append(((Style) closingStack.peek()).getStartTag());
+                        builder.append(syntax.getStartTag((Style) closingStack.peek()));
                         tagStack.push(closingStack.peek());
                         closingStack.pop();
                     }
@@ -622,7 +614,16 @@ public class MarkdownEditText extends EditText {
     }
 
     TabParser tabParser = new TabParser();
-    StyleParser styleParser = new HtmlStyleParser();
+
+    public Syntax getSyntax() {
+        return syntax;
+    }
+
+    public void setSyntax(Syntax syntax) {
+        this.syntax = syntax;
+    }
+
+    private Syntax syntax;
 
     private class Span {
         int position;
@@ -658,17 +659,17 @@ public class MarkdownEditText extends EditText {
 
             final int[] charDiffInParagraph = {matcher.group(1).length()};
 
-            if (enableCharacterStyle) {
+            if (syntax != null) {
                 final int paragraphStart = matcher.start() - charDiff;
                 final StringBuilder paragraphBuilder = new StringBuilder();
 
                 final int[] outLast = {0};
-                styleParser.parse(paragraph, new StyleParser.OnTag() {
+                syntax.parse(paragraph, new Syntax.OnTag() {
                     Stack<Span> tagStack = new Stack<>();
                     int tabs = matcher.group(1).length();
 
                     @Override
-                    public void onTag(int position, StyleParser.Tag tag) {
+                    public void onTag(int position, Syntax.Tag tag) {
                         if (tag.isOpening()) {
                             tagStack.push(new Span(paragraphStart + position + tabs - charDiffInParagraph[0], tag.getStyle()));
                         } else {
