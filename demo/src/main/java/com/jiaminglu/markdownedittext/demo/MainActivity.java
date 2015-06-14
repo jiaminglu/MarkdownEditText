@@ -8,6 +8,10 @@ import android.view.View;
 import android.widget.Button;
 
 import com.jiaminglu.markdownedittext.MarkdownEditText;
+import com.jiaminglu.markdownedittext.style.html.HtmlBoldStyle;
+import com.jiaminglu.markdownedittext.style.html.HtmlItalicStyle;
+import com.jiaminglu.markdownedittext.style.html.HtmlStrikethroughStyle;
+import com.jiaminglu.markdownedittext.style.html.HtmlUnderlineStyle;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -24,16 +28,16 @@ public class MainActivity extends AppCompatActivity {
     public void changeFormat(View v) {
         switch (v.getId()) {
             case R.id.bold:
-                editor.toggleBold();
+                editor.toggleStyleSpan(new HtmlBoldStyle());
                 break;
             case R.id.italic:
-                editor.toggleItalic();
+                editor.toggleStyleSpan(new HtmlItalicStyle());
                 break;
             case R.id.underline:
-                editor.toggleUnderline();
+                editor.toggleStyleSpan(new HtmlUnderlineStyle());
                 break;
             case R.id.strikethrough:
-                editor.toggleStrikethrough();
+                editor.toggleStyleSpan(new HtmlStrikethroughStyle());
                 break;
             case R.id.indent_in:
                 editor.indentIncrease();
