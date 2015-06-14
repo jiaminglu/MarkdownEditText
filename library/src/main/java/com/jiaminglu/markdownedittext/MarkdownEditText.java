@@ -15,13 +15,16 @@ import android.text.Spanned;
 import android.text.TextPaint;
 import android.text.TextUtils;
 import android.text.TextWatcher;
+import android.text.style.CharacterStyle;
 import android.text.style.ClickableSpan;
 import android.text.style.LeadingMarginSpan;
+import android.text.style.StrikethroughSpan;
+import android.text.style.StyleSpan;
+import android.text.style.UnderlineSpan;
 import android.util.AttributeSet;
 import android.view.View;
 import android.widget.EditText;
 
-import com.jiaminglu.markdownedittext.style.Style;
 import com.jiaminglu.markdownedittext.syntax.Syntax;
 
 import java.util.ArrayList;
@@ -30,6 +33,8 @@ import java.util.Comparator;
 import java.util.Stack;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import static android.text.Spanned.SPAN_INCLUSIVE_INCLUSIVE;
 
 /**
  * Created by jiaminglu on 15/6/2.
@@ -178,9 +183,10 @@ public class MarkdownEditText extends EditText {
 
     TextWatcher watcher;
     private void init() {
+        addTextChangedListener(watcher = new TextFormatter());
+        initRichText();
         setLinksClickable(true);
         setMovementMethod(ClickableArrowKeyMovementMethod.getInstance());
-        addTextChangedListener(watcher = new TextFormatter());
     }
 
     private Spannable getBulletSpannable() {
@@ -203,10 +209,10 @@ public class MarkdownEditText extends EditText {
         return spannableString;
     }
 
-    private void toggleStyleSpan(Style newSpan, int start, int end) {
+    private void toggleStyleSpan(CharacterStyle newSpan, int start, int end) {
         if (start < 0 || end > getText().length())
             return;
-        Style[] spans = getText().getSpans(start - 1, end + 1, newSpan.getClass());
+        CharacterStyle[] spans = getText().getSpans(start - 1, end + 1, CharacterStyle.class);
         if (spans.length == 1)  {
             int oldstart = getText().getSpanStart(spans[0]);
             int oldend = getText().getSpanEnd(spans[0]);
@@ -219,7 +225,7 @@ public class MarkdownEditText extends EditText {
                 return;
             }
         }
-        for (Style span : spans) {
+        for (CharacterStyle span : spans) {
             start = Math.min(start, getText().getSpanStart(span));
             end = Math.max(end, getText().getSpanEnd(span));
             getText().removeSpan(span);
@@ -227,7 +233,7 @@ public class MarkdownEditText extends EditText {
         getText().setSpan(newSpan, start, end, Spannable.SPAN_INCLUSIVE_INCLUSIVE);
     }
 
-    public void toggleStyleSpan(Style newSpan) {
+    public void toggleStyleSpan(CharacterStyle newSpan) {
         int start = getSelectionStart();
         int end = getSelectionEnd();
         while (start < end) {
@@ -242,16 +248,20 @@ public class MarkdownEditText extends EditText {
             int nl = start;
             while (nl < end && getText().charAt(nl) != '\n')
                 nl++;
-            try {
-                if (start != nl)
-                    toggleStyleSpan(newSpan.getClass().newInstance(), start, nl);
-            } catch (InstantiationException e) {
-                e.printStackTrace();
-            } catch (IllegalAccessException e) {
-                e.printStackTrace();
-            }
+            if (start != nl)
+                toggleStyleSpan(copy(newSpan), start, nl);
             start = nl + 1;
         }
+    }
+
+    private static CharacterStyle copy(CharacterStyle style) {
+        if (style instanceof StyleSpan)
+            return new StyleSpan(((StyleSpan) style).getStyle());
+        if (style instanceof UnderlineSpan)
+            return new UnderlineSpan();
+        if (style instanceof StrikethroughSpan)
+            return new StrikethroughSpan();
+        return null;
     }
 
     public interface LineOperation {
@@ -492,17 +502,17 @@ public class MarkdownEditText extends EditText {
         @Override
         public String toString() {
             if (type == TYPE_OPENING) {
-                return syntax.getStartTag((Style) tag);
+                return syntax.getStartTag((CharacterStyle) tag);
             }
             if (type == TYPE_CLOSING) {
-                return syntax.getEndTag((Style) tag);
+                return syntax.getEndTag((CharacterStyle) tag);
             }
             return tag.toString();
         }
     }
 
     public CharSequence getMarkdown() {
-        Style[] spans = getText().getSpans(0, length(), Style.class);
+        CharacterStyle[] spans = getText().getSpans(0, length(), CharacterStyle.class);
         TabSpan[] tabs = getText().getSpans(0, length(), TabSpan.class);
 
         ArrayList<SpanTag> tags = new ArrayList<>(spans.length * 2 + tabs.length);
@@ -511,7 +521,7 @@ public class MarkdownEditText extends EditText {
             tags.add(new SpanTag(getText().getSpanStart(span), "\t", SpanTag.TYPE_PARAGRAPH));
         }
         if (syntax != null) {
-            for (Style span : spans) {
+            for (CharacterStyle span : spans) {
                 int start = getText().getSpanStart(span);
                 int end = getText().getSpanEnd(span);
                 if (start == end)
@@ -530,10 +540,10 @@ public class MarkdownEditText extends EditText {
                     return result;
                 if (lhs.type == SpanTag.TYPE_OPENING)
                     return getText().getSpanEnd(lhs.tag) > getText().getSpanEnd(rhs.tag) ? -1 : getText().getSpanEnd(lhs.tag) < getText().getSpanEnd(rhs.tag) ? 1
-                            : ((Style) lhs.tag).getClass().getName().compareTo(((Style) rhs.tag).getClass().getName());
+                            : lhs.tag.getClass().getName().compareTo(rhs.tag.getClass().getName());
                 if (lhs.type == SpanTag.TYPE_CLOSING)
                     return getText().getSpanStart(lhs.tag) > getText().getSpanStart(rhs.tag) ? -1 : getText().getSpanStart(lhs.tag) < getText().getSpanStart(rhs.tag) ? 1
-                            : -((Style) lhs.tag).getClass().getName().compareTo(((Style) rhs.tag).getClass().getName());
+                            : -lhs.tag.getClass().getName().compareTo(rhs.tag.getClass().getName());
                 return 0;
             }
         });
@@ -549,14 +559,14 @@ public class MarkdownEditText extends EditText {
                 if (tags.get(i).type == SpanTag.TYPE_CLOSING) {
                     Stack<Object> closingStack = new Stack<>();
                     while (!tagStack.empty() && tags.get(i).tag != tagStack.peek()) {
-                        builder.append(syntax.getEndTag((Style)tagStack.peek()));
+                        builder.append(syntax.getEndTag((CharacterStyle)tagStack.peek()));
                         closingStack.push(tagStack.peek());
                         tagStack.pop();
                     }
-                    builder.append(syntax.getEndTag((Style) tagStack.peek()));
+                    builder.append(syntax.getEndTag((CharacterStyle) tagStack.peek()));
                     tagStack.pop();
                     while (!closingStack.empty()) {
-                        builder.append(syntax.getStartTag((Style) closingStack.peek()));
+                        builder.append(syntax.getStartTag((CharacterStyle) closingStack.peek()));
                         tagStack.push(closingStack.peek());
                         closingStack.pop();
                     }
@@ -718,7 +728,9 @@ public class MarkdownEditText extends EditText {
         return s;
     }
 
+    boolean firstTimeSetText = true;
     void initRichText() {
+        firstTimeSetText = false;
         int i = 0;
         while (i < getText().length()) {
             Matcher matcher = linePrefixPattern.matcher(getText().subSequence(i, getText().length()));
@@ -876,7 +888,6 @@ public class MarkdownEditText extends EditText {
     }
 
     private class TextFormatter implements TextWatcher {
-        boolean firstTimeSetText = false;
 
         @Override
         public void beforeTextChanged(CharSequence s, int ostart, int count, int after) {
@@ -927,14 +938,8 @@ public class MarkdownEditText extends EditText {
                 if (start == 0 || getText().charAt(start - 1) == '\n') {
                     Matcher matcher = linePrefixPattern.matcher(getText().subSequence(start, getText().length()));
                     if (matcher.find()) {
-                        for (Style style : getText().getSpans(start + matcher.start(), start + matcher.end(), Style.class)) {
-                            try {
-                                toggleStyleSpan(style.getClass().newInstance(), start + matcher.start(), start + matcher.end());
-                            } catch (InstantiationException e) {
-                                e.printStackTrace();
-                            } catch (IllegalAccessException e) {
-                                e.printStackTrace();
-                            }
+                        for (CharacterStyle characterStyle : getText().getSpans(start + matcher.start(), start + matcher.end(), CharacterStyle.class)) {
+                            toggleStyleSpan(copy(characterStyle), start + matcher.start(), start + matcher.end());
                         }
                     }
                 }
@@ -944,7 +949,6 @@ public class MarkdownEditText extends EditText {
                         int oldStart = getText().getSpanStart(span);
                         int oldEnd = getText().getSpanEnd(span);
                         if (oldStart < start && oldEnd > start) {
-                            getText().removeSpan(span);
                             getText().setSpan(span, oldStart, start, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                             getText().setSpan(new TabSpan(), linestart, oldEnd, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                         }
@@ -953,24 +957,16 @@ public class MarkdownEditText extends EditText {
                         int oldStart = getText().getSpanStart(span);
                         int oldEnd = getText().getSpanEnd(span);
                         if (oldStart < start && oldEnd > start) {
-                            getText().removeSpan(span);
                             getText().setSpan(span, oldStart, start, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                         }
                     }
-                    for (Style span : getText().getSpans(start, start, Style.class)) {
+                    for (CharacterStyle span : getText().getSpans(start, start, CharacterStyle.class)) {
                         int oldStart = getText().getSpanStart(span);
                         int oldEnd = getText().getSpanEnd(span);
                         if (oldStart < start && oldEnd > start) {
-                            getText().removeSpan(span);
                             getText().setSpan(span, oldStart, start, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
                             if (oldEnd > linestart) {
-                                try {
-                                    getText().setSpan(span.getClass().newInstance(), linestart, oldEnd, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
-                                } catch (InstantiationException e) {
-                                    e.printStackTrace();
-                                } catch (IllegalAccessException e) {
-                                    e.printStackTrace();
-                                }
+                                getText().setSpan(copy(span), linestart, oldEnd, SPAN_INCLUSIVE_INCLUSIVE);
                             }
                         }
                     }
@@ -1030,7 +1026,6 @@ public class MarkdownEditText extends EditText {
         public void afterTextChanged(Editable s) {
             if (firstTimeSetText) {
                 initRichText();
-                firstTimeSetText = false;
                 return;
             }
             for (RemoveSpan span : s.getSpans(0, s.length(), RemoveSpan.class)) {

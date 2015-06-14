@@ -1,10 +1,10 @@
 package com.jiaminglu.markdownedittext.syntax;
 
-import com.jiaminglu.markdownedittext.style.BoldStyle;
-import com.jiaminglu.markdownedittext.style.ItalicStyle;
-import com.jiaminglu.markdownedittext.style.StrikethroughStyle;
-import com.jiaminglu.markdownedittext.style.Style;
-import com.jiaminglu.markdownedittext.style.UnderlineStyle;
+import android.graphics.Typeface;
+import android.text.style.CharacterStyle;
+import android.text.style.StrikethroughSpan;
+import android.text.style.StyleSpan;
+import android.text.style.UnderlineSpan;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -25,29 +25,43 @@ public class HtmlSyntax implements Syntax {
     }
 
     @Override
-    public String getStartTag(Style style) {
-        if (style instanceof BoldStyle)
-            return "<strong>";
-        if (style instanceof ItalicStyle)
-            return "<em>";
-        if (style instanceof StrikethroughStyle)
-            return "<del>";
-        if (style instanceof UnderlineStyle)
+    public String getStartTag(CharacterStyle characterStyle) {
+        if (characterStyle instanceof StyleSpan) {
+            if ((((StyleSpan) characterStyle).getStyle() & Typeface.BOLD_ITALIC) == Typeface.BOLD_ITALIC) {
+                return "<strong><em>";
+            }
+            if ((((StyleSpan) characterStyle).getStyle() & Typeface.BOLD) != 0) {
+                return "<strong>";
+            }
+            if ((((StyleSpan) characterStyle).getStyle() & Typeface.ITALIC) != 0) {
+                return "<em>";
+            }
+        }
+        if (characterStyle instanceof StrikethroughSpan)
+            return "<strike>";
+        if (characterStyle instanceof UnderlineSpan)
             return "<u>";
-        return null;
+        return "";
     }
 
     @Override
-    public String getEndTag(Style style) {
-        if (style instanceof BoldStyle)
-            return "</strong>";
-        if (style instanceof ItalicStyle)
-            return "</em>";
-        if (style instanceof StrikethroughStyle)
-            return "</del>";
-        if (style instanceof UnderlineStyle)
+    public String getEndTag(CharacterStyle characterStyle) {
+        if (characterStyle instanceof StyleSpan) {
+            if ((((StyleSpan) characterStyle).getStyle() & Typeface.BOLD_ITALIC) == Typeface.BOLD_ITALIC) {
+                return "</em></strong>";
+            }
+            if ((((StyleSpan) characterStyle).getStyle() & Typeface.BOLD) != 0) {
+                return "</strong>";
+            }
+            if ((((StyleSpan) characterStyle).getStyle() & Typeface.ITALIC) != 0) {
+                return "</em>";
+            }
+        }
+        if (characterStyle instanceof StrikethroughSpan)
+            return "</strike>";
+        if (characterStyle instanceof UnderlineSpan)
             return "</u>";
-        return null;
+        return "";
     }
 
     public static class Tag implements Syntax.Tag {
@@ -58,16 +72,16 @@ public class HtmlSyntax implements Syntax {
         }
 
         @Override
-        public Style getStyle() {
+        public CharacterStyle getStyle() {
             String name = tag.substring(isOpening() ? 1 : 2, tag.length() - 1);
             if (name.equals("em"))
-                return new ItalicStyle();
+                return new StyleSpan(Typeface.ITALIC);
             if (name.equals("strong"))
-                return new BoldStyle();
-            if (name.equals("del"))
-                return new StrikethroughStyle();
+                return new StyleSpan(Typeface.BOLD);
+            if (name.equals("strike"))
+                return new StrikethroughSpan();
             if (name.equals("u"))
-                return new UnderlineStyle();
+                return new UnderlineSpan();
             return null;
         }
 

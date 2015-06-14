@@ -1,18 +1,18 @@
 package com.jiaminglu.markdownedittext.demo;
 
+import android.graphics.Typeface;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.text.style.StrikethroughSpan;
+import android.text.style.StyleSpan;
+import android.text.style.UnderlineSpan;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Button;
 
 import com.jiaminglu.markdownedittext.MarkdownEditText;
-import com.jiaminglu.markdownedittext.style.BoldStyle;
 import com.jiaminglu.markdownedittext.syntax.HtmlSyntax;
-import com.jiaminglu.markdownedittext.style.ItalicStyle;
-import com.jiaminglu.markdownedittext.style.StrikethroughStyle;
-import com.jiaminglu.markdownedittext.style.UnderlineStyle;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -30,16 +30,16 @@ public class MainActivity extends AppCompatActivity {
     public void changeFormat(View v) {
         switch (v.getId()) {
             case R.id.bold:
-                editor.toggleStyleSpan(new BoldStyle());
+                editor.toggleStyleSpan(new StyleSpan(Typeface.BOLD));
                 break;
             case R.id.italic:
-                editor.toggleStyleSpan(new ItalicStyle());
+                editor.toggleStyleSpan(new StyleSpan(Typeface.ITALIC));
                 break;
             case R.id.underline:
-                editor.toggleStyleSpan(new UnderlineStyle());
+                editor.toggleStyleSpan(new UnderlineSpan());
                 break;
             case R.id.strikethrough:
-                editor.toggleStyleSpan(new StrikethroughStyle());
+                editor.toggleStyleSpan(new StrikethroughSpan());
                 break;
             case R.id.indent_in:
                 editor.indentIncrease();

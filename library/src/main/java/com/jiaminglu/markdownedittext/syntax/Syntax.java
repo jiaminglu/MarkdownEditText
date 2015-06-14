@@ -1,21 +1,21 @@
 package com.jiaminglu.markdownedittext.syntax;
 
-import com.jiaminglu.markdownedittext.style.Style;
+import android.text.style.CharacterStyle;
 
 /**
  * Created by jiaminglu on 15/6/13.
  */
 public interface Syntax {
     void parse(CharSequence paragraph, OnTag onTag);
-    String getStartTag(Style style);
-    String getEndTag(Style style);
+    String getStartTag(CharacterStyle characterStyle);
+    String getEndTag(CharacterStyle characterStyle);
 
     interface OnTag {
         void onTag(int position, Tag tag);
     }
 
     interface Tag {
-        Style getStyle();
+        CharacterStyle getStyle();
 
         boolean isOpening();
 
