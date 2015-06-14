@@ -7,9 +7,7 @@ import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.text.Spannable;
-import android.text.Spanned;
 import android.text.style.DynamicDrawableSpan;
-import android.text.style.ImageSpan;
 
 import java.util.regex.Matcher;
 
@@ -43,7 +41,7 @@ public class InlineImage extends DynamicDrawableSpan {
         assert spannable == null; // Must be called after image inserted
         int start = markdownEditText.getText().getSpanStart(this);
         int end = markdownEditText.getText().getSpanEnd(this);
-        Matcher matcher = markdownEditText.images.matcher(markdownEditText.getText().subSequence(start, end));
+        Matcher matcher = markdownEditText.imagePattern.matcher(markdownEditText.getText().subSequence(start, end));
         if (matcher.matches()) {
             return matcher.group(2);
         }
@@ -54,7 +52,7 @@ public class InlineImage extends DynamicDrawableSpan {
         assert spannable == null; // Must be called after image inserted
         int start = markdownEditText.getText().getSpanStart(this);
         int end = markdownEditText.getText().getSpanEnd(this);
-        Matcher matcher = markdownEditText.images.matcher(markdownEditText.getText().subSequence(start, end));
+        Matcher matcher = markdownEditText.imagePattern.matcher(markdownEditText.getText().subSequence(start, end));
         if (matcher.matches()) {
             markdownEditText.getText().replace(start + matcher.start(2), start + matcher.end(2), src);
             if (markdownEditText.imageHandler != null) {
