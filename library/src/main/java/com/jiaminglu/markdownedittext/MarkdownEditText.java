@@ -540,10 +540,10 @@ public class MarkdownEditText extends EditText {
                     return result;
                 if (lhs.type == SpanTag.TYPE_OPENING)
                     return getText().getSpanEnd(lhs.tag) > getText().getSpanEnd(rhs.tag) ? -1 : getText().getSpanEnd(lhs.tag) < getText().getSpanEnd(rhs.tag) ? 1
-                            : lhs.tag.getClass().getName().compareTo(rhs.tag.getClass().getName());
+                            : syntax.getStartTag((CharacterStyle) lhs.tag).compareTo(syntax.getStartTag((CharacterStyle) rhs.tag));
                 if (lhs.type == SpanTag.TYPE_CLOSING)
                     return getText().getSpanStart(lhs.tag) > getText().getSpanStart(rhs.tag) ? -1 : getText().getSpanStart(lhs.tag) < getText().getSpanStart(rhs.tag) ? 1
-                            : -lhs.tag.getClass().getName().compareTo(rhs.tag.getClass().getName());
+                            : -syntax.getStartTag((CharacterStyle) lhs.tag).compareTo(syntax.getStartTag((CharacterStyle) rhs.tag));
                 return 0;
             }
         });
