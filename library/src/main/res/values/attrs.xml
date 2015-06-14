@@ -7,5 +7,8 @@
         <attr name="markdown" format="string"/>
         <attr name="viewMode" format="boolean"/>
         <attr name="lineSpacingExtra" format="dimension"/>
+        <attr name="tabSize" format="dimension"/>
+        <attr name="bulletSize" format="dimension"/>
+        <attr name="itemPaddingStart" format="dimension"/>
     </declare-styleable>
 </resources>

@@ -15,7 +15,6 @@ import android.text.Spanned;
 import android.text.TextPaint;
 import android.text.TextUtils;
 import android.text.TextWatcher;
-import android.text.style.CharacterStyle;
 import android.text.style.ClickableSpan;
 import android.text.style.LeadingMarginSpan;
 import android.util.AttributeSet;
@@ -78,11 +77,18 @@ public class MarkdownEditText extends EditText {
             enterViewMode();
 
         imageOffset = (int) a.getDimension(R.styleable.MarkdownEditText_lineSpacingExtra, 0);
+        bulletSize = a.getDimension(R.styleable.MarkdownEditText_bulletSize, getTextSize() / 8);
+        itemPaddingStart = (int) a.getDimension(R.styleable.MarkdownEditText_itemPaddingStart, getTextSize() / 2);
+        tabSize = (int) a.getDimension(R.styleable.MarkdownEditText_tabSize, getTextSize());
+        initBulletShape();
 
         a.recycle();
     }
 
-    int imageOffset;
+    private float bulletSize;
+    private int itemPaddingStart;
+    private int imageOffset;
+    private int tabSize;
 
     @Override
     public void setLineSpacing(float a, float b) {
@@ -268,7 +274,7 @@ public class MarkdownEditText extends EditText {
 
     private class TabSpan extends LeadingMarginSpan.Standard {
         public TabSpan() {
-            super((int) getTextSize());
+            super(tabSize);
         }
     }
 
@@ -336,10 +342,12 @@ public class MarkdownEditText extends EditText {
     }
 
     private ShapeDrawable bullet;
-    {
+    private void initBulletShape() {
         bullet = new ShapeDrawable(new DotShape(4));
         bullet.getPaint().setColor(Color.BLACK);
-        bullet.setBounds(0,0,10,10);
+        ((DotShape)bullet.getShape()).setRadius(bulletSize);
+        bullet.getShape().resize(bulletSize * 4, bulletSize * 2);
+        bullet.setBounds(0, 0, (int) (bulletSize * 4), (int) (bulletSize * 4));
     }
 
     private class LinePrefixImageSpan extends CenteredImageSpan {
@@ -353,25 +361,22 @@ public class MarkdownEditText extends EditText {
     }
 
     private LinePrefixImageSpan getBulletImageSpan() {
-        ((DotShape)bullet.getShape()).setRadius(getTextSize() / 8);
-        bullet.getShape().resize(getTextSize() / 2, getTextSize() / 4);
-        bullet.setBounds(0, 0, (int) (getTextSize() / 2), (int) (getTextSize() / 4));
         LinePrefixImageSpan span = new LinePrefixImageSpan(bullet);
-        span.setSpacing((int) getTextSize() / 4);
+        span.setSpacing(itemPaddingStart);
         span.setOffset(imageOffset);
         return span;
     }
 
     private LinePrefixImageSpan getCheckboxImageSpan() {
         LinePrefixImageSpan span = new LinePrefixImageSpan(checkbox);
-        span.setSpacing((int) getTextSize() / 4);
+        span.setSpacing(itemPaddingStart);
         span.setOffset(imageOffset);
         return span;
     }
 
     private LinePrefixImageSpan getCheckboxCheckedImageSpan() {
         LinePrefixImageSpan span = new LinePrefixImageSpan(checkboxChecked);
-        span.setSpacing((int) getTextSize() / 4);
+        span.setSpacing(itemPaddingStart);
         span.setOffset(imageOffset);
         return span;
     }
@@ -386,7 +391,7 @@ public class MarkdownEditText extends EditText {
         for (MarginSpan span : getText().getSpans(lineStart, lineStart, MarginSpan.class)) {
             getText().removeSpan(span);
         }
-        int margin = drawable.getBounds().right + (int) getTextSize() / 4;
+        int margin = drawable.getBounds().right + itemPaddingStart;
         int end = lineStart;
         while (end < getText().length() && ((end == lineStart && getText().charAt(lineStart) != '\n') || getText().charAt(end) != '\n'))
             end ++;
