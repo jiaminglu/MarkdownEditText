@@ -73,6 +73,9 @@ public class MarkdownEditText extends EditText {
         Drawable checkboxCheckedDrawable = a.getDrawable(R.styleable.MarkdownEditText_checkboxCheckedDrawable);
         setCheckboxChecked(checkboxCheckedDrawable != null ? checkboxCheckedDrawable : getContext().getResources().getDrawable(R.drawable.ic_checkbox_marked_black_18dp));
 
+        Drawable imageLoadingDrawable = a.getDrawable(R.styleable.MarkdownEditText_imageLoadingDrawable);
+        setImageLoadingDrawable(imageLoadingDrawable != null ? imageLoadingDrawable : getContext().getResources().getDrawable(R.drawable.loading));
+
         String markdown = a.getString(R.styleable.MarkdownEditText_markdown);
         if (!TextUtils.isEmpty(markdown))
             setMarkdown(markdown);
@@ -334,8 +337,16 @@ public class MarkdownEditText extends EditText {
         this.checkboxChecked = checkboxChecked;
     }
 
+    public void setImageLoadingDrawable(Drawable imageLoading) {
+        imageLoading.setBounds(0, 0,
+                imageLoading.getIntrinsicWidth(),
+                imageLoading.getIntrinsicHeight());
+        this.imageLoading = imageLoading;
+    }
+
     private Drawable checkbox;
     private Drawable checkboxChecked;
+    private Drawable imageLoading;
 
     public void removeLinePrefixes(int lineStart) {
         for (LinePrefixImageSpan span : getText().getSpans(lineStart, lineStart, LinePrefixImageSpan.class)) {
@@ -764,7 +775,7 @@ public class MarkdownEditText extends EditText {
             while (imageMacher.find()) {
                 int start = imageMacher.start();
                 int end = imageMacher.end();
-                final InlineImage span = setImageThumbnail(getText(), start, end, bullet);
+                final InlineImage span = setImageThumbnail(getText(), start, end, imageLoading);
                 setImageLink(getText(), start, end, span);
                 imageHandler.fetch(span, imageMacher.group(2));
             }
@@ -879,7 +890,7 @@ public class MarkdownEditText extends EditText {
     public InlineImage insertImage(int position, String alt, String uri) {
         formatterDisabled = true;
         SpannableString string = new SpannableString(String.format("![%s](%s)", alt, uri));
-        InlineImage image = setImageThumbnail(string, 0, string.length(), bullet);
+        InlineImage image = setImageThumbnail(string, 0, string.length(), imageLoading);
         setImageLink(string, 0, string.length(), image);
         getText().insert(position, string);
         imageHandler.fetch(image, uri);
