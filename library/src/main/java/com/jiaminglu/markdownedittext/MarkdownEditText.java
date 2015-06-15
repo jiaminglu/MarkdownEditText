@@ -198,20 +198,6 @@ public class MarkdownEditText extends EditText {
         return spannableString;
     }
 
-    private Spannable getCheckboxSpannable() {
-        SpannableString spannableString = new SpannableString(checkboxMarkdown);
-        spannableString.setSpan(getCheckboxImageSpan(), 0, checkboxMarkdown.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-        setCheckboxClickable(spannableString, 0, checkboxMarkdown.length(), false);
-        return spannableString;
-    }
-
-    private Spannable getCheckboxCheckedSpannable() {
-        SpannableString spannableString = new SpannableString(checkboxCheckedMarkdown);
-        spannableString.setSpan(getCheckboxCheckedImageSpan(), 0, checkboxCheckedMarkdown.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-        setCheckboxClickable(spannableString, 0, checkboxCheckedMarkdown.length(), true);
-        return spannableString;
-    }
-
     private void toggleStyleSpan(CharacterStyle newSpan, int start, int end) {
         if (start < 0 || end > getText().length())
             return;
