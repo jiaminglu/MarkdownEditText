@@ -939,11 +939,13 @@ public class MarkdownEditText extends EditText {
                     Matcher matcher = linePrefixPattern.matcher(getText().subSequence(start, getText().length()));
                     if (matcher.find()) {
                         for (CharacterStyle characterStyle : getText().getSpans(start + matcher.start(), start + matcher.end(), CharacterStyle.class)) {
+                            if (characterStyle instanceof InlineImage || characterStyle instanceof LinePrefixImageSpan || characterStyle instanceof ClickableSpan)
+                                continue;
                             toggleStyleSpan(copy(characterStyle), start + matcher.start(), start + matcher.end());
                         }
                     }
                 }
-                if (start < getText().length() && getText().charAt(start) == '\n') {
+                if (count > 0 && start < getText().length() && getText().charAt(start) == '\n') {
                     int linestart = start + 1;
                     for (TabSpan span : getText().getSpans(start, start, TabSpan.class)) {
                         int oldStart = getText().getSpanStart(span);
