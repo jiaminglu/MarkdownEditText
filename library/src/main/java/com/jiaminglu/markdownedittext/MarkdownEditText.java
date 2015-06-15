@@ -478,7 +478,7 @@ public class MarkdownEditText extends EditText {
             @Override
             public void operateOn(int lineStart) {
                 removeLinePrefixes(lineStart);
-                getText().insert(lineStart, getCheckboxSpannable());
+                getText().insert(lineStart, checkboxMarkdown);
                 setMargin(lineStart, checkbox);
             }
         });
@@ -489,7 +489,7 @@ public class MarkdownEditText extends EditText {
             @Override
             public void operateOn(int lineStart) {
                 removeLinePrefixes(lineStart);
-                getText().insert(lineStart, getCheckboxCheckedSpannable());
+                getText().insert(lineStart, checkboxCheckedMarkdown);
                 setMargin(lineStart, checkboxChecked);
             }
         });
@@ -756,14 +756,15 @@ public class MarkdownEditText extends EditText {
                 } else if (str.equals(checkboxMarkdown)) {
                     span = getCheckboxImageSpan();
                     setMargin(i + start, checkbox);
+                    setCheckboxClickable(getText(), i + start, i + end, false);
                 } else if (str.equals(checkboxCheckedMarkdown)) {
                     span = getCheckboxCheckedImageSpan();
                     setMargin(i + start, checkboxChecked);
+                    setCheckboxClickable(getText(), i + start, i + end, true);
                 } else {
                     continue;
                 }
                 getText().setSpan(span, i + start, i + end, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-                setCheckboxClickable(getText(), i + start, i + end, false);
             }
             while (i < getText().length() && getText().charAt(i) != '\n')
                 i++;
@@ -816,9 +817,9 @@ public class MarkdownEditText extends EditText {
                 int spanStart = getText().getSpanStart(this);
                 int spanEnd = getText().getSpanEnd(this);
                 if (!checked)
-                    getText().replace(spanStart, spanStart + checkboxMarkdown.length(), getCheckboxCheckedSpannable());
+                    getText().replace(spanStart, spanStart + checkboxMarkdown.length(), checkboxCheckedMarkdown);
                 else
-                    getText().replace(spanStart, spanStart + checkboxCheckedMarkdown.length(), getCheckboxSpannable());
+                    getText().replace(spanStart, spanStart + checkboxCheckedMarkdown.length(), checkboxMarkdown);
                 if (checkboxClickListener != null)
                     checkboxClickListener.onCheckboxClicked(spanStart, !checked);
                 getText().removeSpan(this);
@@ -840,7 +841,8 @@ public class MarkdownEditText extends EditText {
         while (matcher.find()) {
             int linestart = matcher.start();
             int lineend = matcher.end();
-            setCheckboxClickable(getText(), linestart, lineend, getText().subSequence(linestart, linestart + checkboxCheckedMarkdown.length()).equals(checkboxCheckedMarkdown));
+            boolean checked = getText().subSequence(linestart, linestart + checkboxCheckedMarkdown.length()).toString().equals(checkboxCheckedMarkdown);
+            setCheckboxClickable(getText(), linestart, lineend, checked);
         }
     }
 
@@ -908,6 +910,11 @@ public class MarkdownEditText extends EditText {
                 firstTimeSetText = true;
             int start = ostart;
             while (count > 0) {
+                Matcher matcher = linePrefixPattern.matcher(s.subSequence(start, s.length()));
+                if (matcher.find()) {
+                    for (MarginSpan span : getText().getSpans(start, start, MarginSpan.class))
+                        getText().removeSpan(span);
+                }
                 if (s.charAt(start) == '\n' && start + 1 <= getText().length()) {
                     if (start > 0 && s.charAt(start - 1) == ' ')
                         remove(start - 1, start);
@@ -948,12 +955,55 @@ public class MarkdownEditText extends EditText {
                 }
                 if (start == 0 || getText().charAt(start - 1) == '\n') {
                     Matcher matcher = linePrefixPattern.matcher(getText().subSequence(start, getText().length()));
-                    if (matcher.find()) {
+                    boolean found = matcher.find();
+                    if (found) {
                         for (CharacterStyle characterStyle : getText().getSpans(start + matcher.start(), start + matcher.end(), CharacterStyle.class)) {
                             if (characterStyle instanceof InlineImage || characterStyle instanceof LinePrefixImageSpan || characterStyle instanceof ClickableSpan)
                                 continue;
                             toggleStyleSpan(copy(characterStyle), start + matcher.start(), start + matcher.end());
                         }
+                    }
+                    if (!formatterDisabled) {
+                        if (found) {
+                            String str = matcher.group();
+                            if (str.equals(bulletMarkdown)) {
+                                getText().setSpan(getBulletImageSpan(), start, start + bulletMarkdown.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                                setMargin(start + 1, bullet);
+                            } else if (str.equals(checkboxMarkdown)) {
+                                getText().setSpan(getCheckboxImageSpan(), start, start + checkboxMarkdown.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                                setCheckboxClickable(getText(),start, start + checkboxMarkdown.length(), false);
+                                setMargin(start, checkbox);
+                            } else if (str.equals(checkboxCheckedMarkdown)) {
+                                getText().setSpan(getCheckboxCheckedImageSpan(), start, start + checkboxCheckedMarkdown.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+                                setCheckboxClickable(getText(),start, start + checkboxCheckedMarkdown.length(), true);
+                                setMargin(start, checkboxChecked);
+                            }
+                        } else {
+                            int prevStart = start - 2;
+                            if (!(prevStart >= 0 && getText().charAt(prevStart) == '\n')) {
+                                while (prevStart > 0 && getText().charAt(prevStart - 1) != '\n')
+                                    prevStart--;
+                            }
+                            matcher = linePrefixPattern.matcher(getText().subSequence(prevStart, getText().length()));
+                            if (matcher.find()) {
+                                String str = matcher.group();
+                                if (str.equals(bulletMarkdown)) {
+                                    insertBefore(start, getBulletSpannable());
+                                    setMargin(start, bullet);
+                                } else if (str.equals(checkboxMarkdown) || str.equals(checkboxCheckedMarkdown)) {
+                                    insertBefore(start, new SpannableString(checkboxMarkdown));
+                                    setMargin(start, checkbox);
+                                } else {
+                                    insertBefore(start, new SpannableString(String.valueOf(Integer.valueOf(matcher.group(2)) + 1) + ". "));
+                                }
+                            } else {
+                                if (start == s.length() || s.charAt(start) == '\n')
+                                    insertBefore(start, new SpannableString(" "));
+                            }
+                        }
+                    } else {
+                        if (start == s.length() || s.charAt(start) == '\n')
+                            insertBefore(start, new SpannableString(" "));
                     }
                 }
                 if (count > 0 && start < getText().length() && getText().charAt(start) == '\n') {
@@ -984,50 +1034,6 @@ public class MarkdownEditText extends EditText {
                         }
                     }
 
-                    if (!formatterDisabled) {
-                        Matcher matcher = linePrefixPattern.matcher(getText().subSequence(linestart, getText().length()));
-
-                        if (matcher.find()) {
-                            String str = matcher.group();
-                            if (str.equals(bulletMarkdown)) {
-                                getText().setSpan(getBulletImageSpan(), linestart, linestart + bulletMarkdown.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-                                setMargin(start + 1, bullet);
-                            } else if (str.equals(checkboxMarkdown)) {
-                                getText().setSpan(getCheckboxImageSpan(), linestart, linestart + checkboxMarkdown.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-                                setCheckboxClickable(getText(),linestart, linestart + checkboxMarkdown.length(), false);
-                                setMargin(linestart, checkbox);
-                            } else if (str.equals(checkboxCheckedMarkdown)) {
-                                getText().setSpan(getCheckboxCheckedImageSpan(), linestart, linestart + checkboxCheckedMarkdown.length(), Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
-                                setCheckboxClickable(getText(),linestart, linestart + checkboxCheckedMarkdown.length(), true);
-                                setMargin(linestart, checkboxChecked);
-                            }
-                        } else {
-                            int prevStart = start - 1;
-                            if (!(prevStart >= 0 && getText().charAt(prevStart) == '\n')) {
-                                while (prevStart > 0 && getText().charAt(prevStart - 1) != '\n')
-                                    prevStart--;
-                            }
-                            matcher = linePrefixPattern.matcher(getText().subSequence(prevStart, getText().length()));
-                            if (matcher.find()) {
-                                String str = matcher.group();
-                                if (str.equals(bulletMarkdown)) {
-                                    insertBefore(linestart, getBulletSpannable());
-                                    setMargin(linestart, bullet);
-                                } else if (str.equals(checkboxMarkdown) || str.equals(checkboxCheckedMarkdown)) {
-                                    insertBefore(linestart, getCheckboxSpannable());
-                                    setMargin(linestart, checkbox);
-                                } else {
-                                    insertBefore(linestart, new SpannableString(String.valueOf(Integer.valueOf(matcher.group(2)) + 1) + ". "));
-                                }
-                            } else {
-                                if (linestart == s.length() || s.charAt(linestart) == '\n')
-                                    insertBefore(linestart, new SpannableString(" "));
-                            }
-                        }
-                    } else {
-                        if (linestart == s.length() || s.charAt(linestart) == '\n')
-                            insertBefore(linestart, new SpannableString(" "));
-                    }
                 }
                 start++;
                 before--;

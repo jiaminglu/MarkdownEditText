@@ -19,7 +19,7 @@ public class InlineImage extends DynamicDrawableSpan {
     Spannable spannable;
 
     InlineImage(MarkdownEditText markdownEditText, Drawable drawable) {
-        super();
+        super(ALIGN_BASELINE);
         this.drawable = drawable;
         this.markdownEditText = markdownEditText;
     }
