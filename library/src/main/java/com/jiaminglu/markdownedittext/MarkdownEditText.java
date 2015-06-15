@@ -939,6 +939,10 @@ public class MarkdownEditText extends EditText {
                     Matcher matcher = linePrefixPattern.matcher(getText().subSequence(start, getText().length()));
                     if (matcher.find()) {
                         for (CharacterStyle characterStyle : getText().getSpans(start + matcher.start(), start + matcher.end(), CharacterStyle.class)) {
+                            if (characterStyle instanceof LinePrefixImageSpan)
+                                continue;
+                            if (characterStyle instanceof ClickableSpan)
+                                continue;
                             toggleStyleSpan(copy(characterStyle), start + matcher.start(), start + matcher.end());
                         }
                     }
