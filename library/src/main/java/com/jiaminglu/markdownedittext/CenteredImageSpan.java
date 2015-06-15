@@ -34,14 +34,14 @@ public class CenteredImageSpan extends ImageSpan {
         paint.getTextBounds(str, 0, str.length(), rect);
 
         if (fm != null) {
-            fm.ascent = -rect.bottom;
+            fm.ascent = -rect.bottom - offset;
             fm.descent = 0;
 
             fm.top = fm.ascent;
             fm.bottom = 0;
         }
 
-        return d.getBounds().right;
+        return d.getBounds().right + spacing;
     }
 
     private int spacing;
