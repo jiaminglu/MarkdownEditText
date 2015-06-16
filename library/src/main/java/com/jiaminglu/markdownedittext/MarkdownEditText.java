@@ -22,6 +22,7 @@ import android.text.style.StrikethroughSpan;
 import android.text.style.StyleSpan;
 import android.text.style.UnderlineSpan;
 import android.util.AttributeSet;
+import android.util.TypedValue;
 import android.view.View;
 import android.widget.EditText;
 
@@ -83,6 +84,7 @@ public class MarkdownEditText extends EditText {
             enterViewMode();
 
         imageOffset = (int) a.getDimension(R.styleable.MarkdownEditText_lineSpacingExtra, 0);
+        imagePadding = (int) a.getDimension(R.styleable.MarkdownEditText_imagePadding, TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP, 2, getResources().getDisplayMetrics()));
         bulletSize = a.getDimension(R.styleable.MarkdownEditText_bulletSize, getTextSize() / 8);
         itemPaddingStart = (int) a.getDimension(R.styleable.MarkdownEditText_itemPaddingStart, getTextSize() / 2);
         tabSize = (int) a.getDimension(R.styleable.MarkdownEditText_tabSize, getTextSize());
@@ -95,6 +97,7 @@ public class MarkdownEditText extends EditText {
     private int itemPaddingStart;
     private int imageOffset;
     private int tabSize;
+    private int imagePadding;
 
     @Override
     public void setLineSpacing(float a, float b) {
@@ -857,7 +860,7 @@ public class MarkdownEditText extends EditText {
     }
 
     private InlineImage setImageThumbnail(Spannable spannable, int st, int en, Drawable image) {
-        InlineImage span = new InlineImage(this, image);
+        InlineImage span = new InlineImage(this, image, imagePadding);
         spannable.setSpan(span, st, en, Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         return span;
     }

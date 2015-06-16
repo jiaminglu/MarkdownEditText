@@ -1,12 +1,9 @@
 package com.jiaminglu.markdownedittext;
 
-import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Paint;
 import android.graphics.Rect;
-import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
-import android.text.Spannable;
 import android.text.style.DynamicDrawableSpan;
 
 import java.util.regex.Matcher;
@@ -16,12 +13,14 @@ import java.util.regex.Matcher;
  */
 public class InlineImage extends DynamicDrawableSpan {
     private MarkdownEditText markdownEditText;
-    Spannable spannable;
 
-    InlineImage(MarkdownEditText markdownEditText, Drawable drawable) {
+    private int padding;
+
+    InlineImage(MarkdownEditText markdownEditText, Drawable drawable, int padding) {
         super(ALIGN_BASELINE);
         this.drawable = drawable;
         this.markdownEditText = markdownEditText;
+        this.padding = padding;
     }
 
     public void setDrawable(Drawable drawable) {
@@ -33,7 +32,6 @@ public class InlineImage extends DynamicDrawableSpan {
     }
 
     public String getSrc() {
-        assert spannable == null; // Must be called after image inserted
         int start = markdownEditText.getText().getSpanStart(this);
         int end = markdownEditText.getText().getSpanEnd(this);
         Matcher matcher = markdownEditText.imagePattern.matcher(markdownEditText.getText().subSequence(start, end));
@@ -44,7 +42,6 @@ public class InlineImage extends DynamicDrawableSpan {
     }
 
     public void setSrc(String src) {
-        assert spannable == null; // Must be called after image inserted
         int start = markdownEditText.getText().getSpanStart(this);
         int end = markdownEditText.getText().getSpanEnd(this);
         Matcher matcher = markdownEditText.imagePattern.matcher(markdownEditText.getText().subSequence(start, end));
@@ -87,7 +84,7 @@ public class InlineImage extends DynamicDrawableSpan {
             fm.bottom = 0;
         }
 
-        return rect.right;
+        return rect.right + padding * 2;
     }
 
     /*
@@ -104,7 +101,7 @@ public class InlineImage extends DynamicDrawableSpan {
             transY -= paint.getFontMetricsInt().descent;
         }
 
-        canvas.translate(x, transY);
+        canvas.translate(x + padding, transY);
         b.draw(canvas);
         canvas.restore();
 

@@ -5,6 +5,7 @@
         <attr name="checkboxDrawable" format="reference"/>
         <attr name="checkboxCheckedDrawable" format="reference"/>
         <attr name="imageLoadingDrawable" format="reference"/>
+        <attr name="imagePadding" format="dimension"/>
         <attr name="markdown" format="string"/>
         <attr name="viewMode" format="boolean"/>
         <attr name="lineSpacingExtra" format="dimension"/>
