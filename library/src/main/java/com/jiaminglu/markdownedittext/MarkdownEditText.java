@@ -981,9 +981,11 @@ public class MarkdownEditText extends EditText {
                                 while (prevStart > 0 && getText().charAt(prevStart - 1) != '\n')
                                     prevStart--;
                             }
-                            matcher = linePrefixPattern.matcher(getText().subSequence(prevStart, getText().length()));
-                            if (matcher.find()) {
-                                String str = matcher.group();
+                            Matcher prevMatcher = null;
+                            if (prevStart >= 0)
+                                prevMatcher = linePrefixPattern.matcher(getText().subSequence(prevStart, getText().length()));
+                            if (prevMatcher != null && prevMatcher.find()) {
+                                String str = prevMatcher.group();
                                 if (str.equals(bulletMarkdown)) {
                                     insertBefore(start, getBulletSpannable());
                                     setMargin(start, bullet);
@@ -991,7 +993,7 @@ public class MarkdownEditText extends EditText {
                                     insertBefore(start, new SpannableString(checkboxMarkdown));
                                     setMargin(start, checkbox);
                                 } else {
-                                    insertBefore(start, new SpannableString(String.valueOf(Integer.valueOf(matcher.group(2)) + 1) + ". "));
+                                    insertBefore(start, new SpannableString(String.valueOf(Integer.valueOf(prevMatcher.group(2)) + 1) + ". "));
                                 }
                             } else {
                                 if (start == s.length() || s.charAt(start) == '\n')
