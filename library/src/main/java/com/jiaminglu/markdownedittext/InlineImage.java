@@ -25,11 +25,6 @@ public class InlineImage extends DynamicDrawableSpan {
     }
 
     public void setDrawable(Drawable drawable) {
-        if (this.drawable instanceof BitmapDrawable) {
-            Bitmap bitmap = ((BitmapDrawable) this.drawable).getBitmap();
-            if (bitmap != null)
-                bitmap.recycle();
-        }
         this.drawable = drawable;
         markdownEditText.getText().setSpan(this,
                 markdownEditText.getText().getSpanStart(this),

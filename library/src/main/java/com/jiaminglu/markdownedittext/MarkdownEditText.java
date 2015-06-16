@@ -772,6 +772,7 @@ public class MarkdownEditText extends EditText {
     public interface ImageHandler {
         void fetch(InlineImage image, String uri);
         void onClick(InlineImage image, String uri);
+        void onRemove(InlineImage image, String uri);
     }
 
     public void setImageHandler(ImageHandler imageHandler) {
@@ -895,6 +896,13 @@ public class MarkdownEditText extends EditText {
             if (s.length() == 0)
                 firstTimeSetText = true;
             int start = ostart;
+            Matcher imageMatcher = imagePattern.matcher(s.subSequence(start, start + count));
+            while (imageMatcher.find()) {
+                InlineImage[] images = getText().getSpans(start, start + count, InlineImage.class);
+                if (images.length != 0) {
+                    imageHandler.onRemove(images[0], imageMatcher.group(2));
+                }
+            }
             while (count > 0) {
                 Matcher matcher = linePrefixPattern.matcher(s.subSequence(start, s.length()));
                 if (matcher.find()) {
