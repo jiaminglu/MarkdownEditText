@@ -3,6 +3,7 @@ package com.jiaminglu.markdownedittext;
 import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Paint;
+import android.graphics.Rect;
 import android.graphics.drawable.Drawable;
 import android.support.annotation.NonNull;
 import android.text.style.ImageSpan;
@@ -13,10 +14,6 @@ import java.lang.ref.WeakReference;
  * Created by jiaminglu on 15/6/2.
  */
 public class CenteredImageSpan extends ImageSpan {
-
-    // Extra variables used to redefine the Font Metrics when an ImageSpan is added
-    private int initialDescent = 0;
-    private int extraSpace = 0;
 
     public CenteredImageSpan(Drawable b) {
         super(b, android.text.style.DynamicDrawableSpan.ALIGN_BASELINE);
@@ -30,7 +27,21 @@ public class CenteredImageSpan extends ImageSpan {
     public int getSize(Paint paint, CharSequence text,
                        int start, int end,
                        Paint.FontMetricsInt fm) {
-        return getCachedDrawable().getBounds().right + spacing;
+        Drawable d = getCachedDrawable();
+        Rect rect = new Rect();
+
+        String str = text.subSequence(start, end).toString();
+        paint.getTextBounds(str, 0, str.length(), rect);
+
+        if (fm != null) {
+            fm.ascent = -rect.bottom - offset;
+            fm.descent = 0;
+
+            fm.top = fm.ascent;
+            fm.bottom = 0;
+        }
+
+        return d.getBounds().right + spacing;
     }
 
     private int spacing;
