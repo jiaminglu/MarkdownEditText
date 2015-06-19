@@ -205,7 +205,20 @@ public class MarkdownEditText extends EditText {
         if (start < 0 || end > getText().length())
             return;
         CharacterStyle[] spans = getText().getSpans(start - 1, end + 1, CharacterStyle.class);
-        if (spans.length == 1)  {
+
+        int count = 0;
+        for (int i = 0; i < spans.length; i++) {
+            if (!spans[i].getClass().isInstance(newSpan))
+                spans[i] = null;
+            if (newSpan instanceof StyleSpan && spans[i] instanceof StyleSpan) {
+                if (((StyleSpan) newSpan).getStyle() != ((StyleSpan)spans[i]).getStyle())
+                    spans[i] = null;
+            }
+            if (spans[i] != null)
+                count ++;
+        }
+
+        if (count == 1)  {
             int oldstart = getText().getSpanStart(spans[0]);
             int oldend = getText().getSpanEnd(spans[0]);
             if (oldstart <= start && oldend >= end) {
@@ -218,6 +231,8 @@ public class MarkdownEditText extends EditText {
             }
         }
         for (CharacterStyle span : spans) {
+            if (span == null)
+                continue;
             start = Math.min(start, getText().getSpanStart(span));
             end = Math.max(end, getText().getSpanEnd(span));
             getText().removeSpan(span);
