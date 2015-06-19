@@ -940,6 +940,7 @@ public class MarkdownEditText extends EditText {
                 return;
             if (firstTimeSetText)
                 return;
+            int ostart = start;
             if (start > 0 && getText().charAt(start - 1) == '\n' && (start == length() || getText().charAt(start) == '\n'))
                 insertBefore(start, new SpannableString(" "));
             while (count >= 0 && start <= s.length()) {
@@ -975,7 +976,7 @@ public class MarkdownEditText extends EditText {
                                 setCheckboxClickable(getText(),start, start + checkboxCheckedMarkdown.length(), true);
                                 setMargin(start, checkboxChecked);
                             }
-                        } else {
+                        } else if (start > ostart) {
                             int prevStart = start - 2;
                             if (!(prevStart >= 0 && getText().charAt(prevStart) == '\n')) {
                                 while (prevStart > 0 && getText().charAt(prevStart - 1) != '\n')
