@@ -42,10 +42,7 @@ public class MainActivity extends AppCompatActivity {
                 editor.toggleStyleSpan(new StrikethroughSpan());
                 break;
             case R.id.indent_in:
-                editor.indentIncrease();
-                break;
-            case R.id.indent_out:
-                editor.indentDecrease();
+                //editor.indentIncrease();
                 break;
             case R.id.checkbox:
                 editor.setLineCheckbox();

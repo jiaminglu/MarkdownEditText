@@ -47,10 +47,6 @@
             android:src="@drawable/ic_format_indent_increase_black_24dp"
             style="@style/FormatButton" />
         <ImageButton
-            android:id="@+id/indent_out"
-            android:src="@drawable/ic_format_indent_decrease_black_24dp"
-            style="@style/FormatButton" />
-        <ImageButton
             android:id="@+id/checkbox"
             android:src="@drawable/ic_checkbox_blank_outline_black_24dp"
             style="@style/FormatButton" />

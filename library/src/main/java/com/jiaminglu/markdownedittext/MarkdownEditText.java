@@ -108,10 +108,7 @@ public class MarkdownEditText extends EditText {
     @Override
     public void onSelectionChanged(int selStart, int selEnd) {
         boolean changed = false;
-        if (selStart > 2 && selStart <= length() && getText().charAt(selStart - 2) == '\n' && getText().charAt(selStart - 1) == ' ' && (selStart == length() || getText().charAt(selStart) == '\n')) {
-            selStart --;
-            changed = true;
-        } else {
+        {
             LinePrefixImageSpan[] spans = getText().getSpans(selStart, selStart, LinePrefixImageSpan.class);
             if (spans.length > 0) {
                 int end = getText().getSpanEnd(spans[0]);
@@ -119,16 +116,10 @@ public class MarkdownEditText extends EditText {
                     selStart = end;
                     changed = true;
                 }
-            } else if (selStart > 0 && selStart < length() && getText().charAt(selStart) == ' ' && prevWordIsNumber(selStart) != -1) {
-                selStart --;
-                changed = true;
             }
 
         }
-        if (selEnd > 2 && selEnd <= length() && getText().charAt(selEnd - 2) == '\n' && getText().charAt(selEnd - 1) == ' ' && (selEnd == length() || getText().charAt(selEnd) == '\n')) {
-            selEnd --;
-            changed = true;
-        } else {
+        {
             LinePrefixImageSpan[] spans = getText().getSpans(selEnd, selEnd, LinePrefixImageSpan.class);
             if (spans.length > 0) {
                 int end = getText().getSpanEnd(spans[0]);
@@ -136,9 +127,6 @@ public class MarkdownEditText extends EditText {
                     selEnd = end;
                     changed = true;
                 }
-            } else if (selEnd > 0 && selEnd < length() && getText().charAt(selEnd) == ' ' && prevWordIsNumber(selEnd) != -1) {
-                selEnd --;
-                changed = true;
             }
         }
         if (!changed)
@@ -177,6 +165,7 @@ public class MarkdownEditText extends EditText {
         return -1;
     }
 
+    //private String indentMarkdown = "\t";
     private String bulletMarkdown = "* ";
     private String checkboxMarkdown = "- [ ] ";
     private String checkboxCheckedMarkdown = "- [x] ";
@@ -295,38 +284,6 @@ public class MarkdownEditText extends EditText {
         }
     }
 
-    public void indentIncrease() {
-        operationOnLines(new LineOperation() {
-            @Override
-            public void operateOn(int lineStart) {
-                int end = lineStart;
-                while (end < getText().length() && ((end == lineStart && getText().charAt(lineStart) != '\n') || getText().charAt(end) != '\n'))
-                    end ++;
-                getText().setSpan(new TabSpan(), lineStart, end, Spanned.SPAN_INCLUSIVE_INCLUSIVE);
-                if ((getNumberingAtLine(lineStart)) != 0) {
-                    setLineNumbered();
-                }
-            }
-        });
-    }
-
-    public void indentDecrease() {
-        operationOnLines(new LineOperation() {
-            @Override
-            public void operateOn(int lineStart) {
-                int end = lineStart;
-                while (end < getText().length() && (getText().charAt(end) != '\n'))
-                    end ++;
-                TabSpan[] spans = getText().getSpans(lineStart, end, TabSpan.class);
-                if (spans.length > 0)
-                    getText().removeSpan(spans[0]);
-                if ((getNumberingAtLine(lineStart)) != 0) {
-                    setLineNumbered();
-                }
-            }
-        });
-    }
-
     public void setCheckbox(Drawable checkbox) {
         checkbox.setBounds(0, 0,
                 checkbox.getIntrinsicWidth(),
@@ -413,10 +370,13 @@ public class MarkdownEditText extends EditText {
     }
 
     private void setMargin(int lineStart, Drawable drawable) {
+        setMargin(lineStart, drawable.getBounds().right + itemPaddingStart);
+    }
+
+    private void setMargin(int lineStart, int margin) {
         for (MarginSpan span : getText().getSpans(lineStart, lineStart, MarginSpan.class)) {
             getText().removeSpan(span);
         }
-        int margin = drawable.getBounds().right + itemPaddingStart;
         int end = lineStart;
         while (end < getText().length() && ((end == lineStart && getText().charAt(lineStart) != '\n') || getText().charAt(end) != '\n'))
             end ++;
@@ -476,6 +436,16 @@ public class MarkdownEditText extends EditText {
             }
         });
     }
+
+    //public void increaseIndent() {
+    //    operationOnLines(new LineOperation() {
+    //        @Override
+    //        public void operateOn(int lineStart) {
+    //            getText().insert(lineStart, indentMarkdown);
+    //            setMargin(lineStart, (int) getPaint().measureText(indentMarkdown));
+    //        }
+    //    });
+    //}
 
     public void setLineCheckbox() {
         operationOnLines(new LineOperation() {
@@ -718,11 +688,6 @@ public class MarkdownEditText extends EditText {
                 outParagraph = paragraph;
             }
 
-            if (outParagraph.length() == 0) {
-                outParagraph = " ";
-                charDiffInParagraph[0] --;
-            }
-
             int tabs = tabParser.parse(matcher.group(1));
 
             for (int i = 0; i < tabs; i++)
@@ -752,8 +717,8 @@ public class MarkdownEditText extends EditText {
             if (matcher.find()) {
                 int start = matcher.start();
                 int end = matcher.end();
-                String str = matcher.group();
-                Object span;
+                String str = matcher.group(1);
+                Object span = null;
                 if (str.equals(bulletMarkdown)) {
                     span = getBulletImageSpan();
                     setMargin(i + start, bullet);
@@ -765,10 +730,10 @@ public class MarkdownEditText extends EditText {
                     span = getCheckboxCheckedImageSpan();
                     setMargin(i + start, checkboxChecked);
                     setCheckboxClickable(getText(), i + start, i + end, true);
-                } else {
-                    continue;
                 }
-                getText().setSpan(span, i + start, i + end, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
+
+                if (span != null)
+                    getText().setSpan(span, i + start, i + end, Spanned.SPAN_INCLUSIVE_EXCLUSIVE);
             }
             while (i < getText().length() && getText().charAt(i) != '\n')
                 i++;
@@ -928,8 +893,6 @@ public class MarkdownEditText extends EditText {
                         getText().removeSpan(span);
                 }
                 if (s.charAt(start) == '\n' && start + 1 <= getText().length()) {
-                    if (start > 0 && s.charAt(start - 1) == ' ')
-                        remove(start - 1, start);
                     for (TabSpan span : getText().getSpans(start + 1, start + count, TabSpan.class))
                         getText().removeSpan(span);
                     for (MarginSpan span : getText().getSpans(start + 1, start + count, MarginSpan.class))
@@ -956,16 +919,7 @@ public class MarkdownEditText extends EditText {
             if (firstTimeSetText)
                 return;
             int ostart = start;
-            if (start > 0 && getText().charAt(start - 1) == '\n' && (start == length() || getText().charAt(start) == '\n'))
-                insertBefore(start, new SpannableString(" "));
             while (count >= 0 && start <= s.length()) {
-                if (start + 1 < getText().length() && getText().charAt(start) != '\n'
-                        && getText().charAt(start + 1) == ' '
-                        && (start + 2 == length() || getText().charAt(start + 2) == '\n')
-                        && (getText().getSpans(start, start, LinePrefixImageSpan.class).length == 0)
-                        && (prevWordIsNumber(start + 1) == -1)) {
-                    remove(start + 1, start + 2);
-                }
                 if (start == 0 || getText().charAt(start - 1) == '\n') {
                     Matcher matcher = linePrefixPattern.matcher(getText().subSequence(start, getText().length()));
                     boolean found = matcher.find();
@@ -1011,14 +965,8 @@ public class MarkdownEditText extends EditText {
                                 } else {
                                     insertBefore(start, new SpannableString(String.valueOf(Integer.valueOf(prevMatcher.group(2)) + 1) + ". "));
                                 }
-                            } else {
-                                if (start == s.length() || s.charAt(start) == '\n')
-                                    insertBefore(start, new SpannableString(" "));
                             }
                         }
-                    } else {
-                        if (start == s.length() || s.charAt(start) == '\n')
-                            insertBefore(start, new SpannableString(" "));
                     }
                 }
                 if (count > 0 && start < getText().length() && getText().charAt(start) == '\n') {

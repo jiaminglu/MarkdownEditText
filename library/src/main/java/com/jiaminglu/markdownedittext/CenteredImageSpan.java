@@ -30,8 +30,7 @@ public class CenteredImageSpan extends ImageSpan {
         Drawable d = getCachedDrawable();
         Rect rect = new Rect();
 
-        String str = text.subSequence(start, end).toString();
-        paint.getTextBounds(str, 0, str.length(), rect);
+        paint.getTextBounds(" ", 0, 1, rect);
 
         if (fm != null) {
             fm.ascent = -rect.bottom - offset;
