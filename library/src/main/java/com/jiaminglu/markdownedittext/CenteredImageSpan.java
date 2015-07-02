@@ -28,16 +28,14 @@ public class CenteredImageSpan extends ImageSpan {
                        int start, int end,
                        Paint.FontMetricsInt fm) {
         Drawable d = getCachedDrawable();
-        Rect rect = new Rect();
-
-        paint.getTextBounds(" ", 0, 1, rect);
 
         if (fm != null) {
-            fm.ascent = -rect.bottom - offset;
-            fm.descent = 0;
+            Paint.FontMetricsInt fmi = paint.getFontMetricsInt();
+            fm.ascent = fmi.ascent;
+            fm.descent = fmi.descent;
 
-            fm.top = fm.ascent;
-            fm.bottom = 0;
+            fm.top = fmi.top;
+            fm.bottom = fmi.bottom;
         }
 
         return d.getBounds().right + spacing;
